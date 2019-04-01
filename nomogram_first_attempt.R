@@ -113,11 +113,11 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
  #These variables need work Medical School Type, Med_school_condensed
  #Removed Step 2 CK score because most applicants will not have it and I don't have data on those who did not take the test at the time of applying.  
  mod.bi <- rms::lrm(Match_Status_Dichot ~ white_non_white + Gender + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Misdemeanor_Conviction, data = data)
-   mod.bi 
- 
+   print(mod.bi)
+
  #Keep predictors in the binary logistic regression model that have a p<0.10 a priori to create nomogram
  mod.bi.significant <- rms::lrm(Match_Status_Dichot ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data = data)
- mod.bi.significant  #Check the C-statistic which is the same as ROC area for binary logistic regression
+ print(mod.bi.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
  
  nom.bi <- rms::nomogram(mod.bi.significant, 
                          #lp.at = seq(-3,4,by=0.5),
@@ -137,13 +137,9 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
       label.every=1,
       col.grid = gray(c(0.8, 0.95)),
       which="Match_Status_Dichot")
+ print(nom.bi)
  #legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
  
- 
- 
- 
- 
-
  
  #Data partitioning to 80/20 for testing and training
  set.seed(88) # set seed for replication
@@ -157,66 +153,67 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
 dim(train)
 dim(test)
   
-  ##https://github.com/harrelfe/rms/blob/master/inst/tests/nomogram.r
-  # From Andy Bush <andy@kb4lsn.net>
-  require(rms)
-  set.seed(20)
-  x1<-10*runif(20,0,1)
-  y1<-c(rep(0,10),rep(1,10))
-  y2<-5*rnorm(20,0,1)
-  
-  d<-data.frame(cbind(y1,y2,x1))
-  dd<-datadist(d)
-  options(datadist='dd')
-  flrm<-lrm(y1~x1,x=T,y=T,model=T)
-  nomlrm<-nomogram(flrm)
-  plot(nomlrm,xfac=.45)
-  fols<-ols(y2~x1,x=T,y=T,model=T)
-  nomols<-nomogram(fols)
-  plot(nomols,xfac=.45)
-  
-  
-  ## From Zongheng Zhang zh_zhang1984@hotmail.com
-  n <- 1000    # sample size
-  
-  age<- rnorm(n, 65, 11)
-  lac<- round(abs(rnorm(n, 3, 1)),1)
-  sex<- factor(sample(1:2,n,prob=c(0.6,0.4),TRUE),
-               labels=c('male','female'))
-  shock<-factor(sample(1:4,n,prob=c(0.3,0.3,0.25,0.15),TRUE),
-                labels=c('no','mild','moderate','severe'))
-  z<- 0.2*age + 3*lac* as.numeric(sex)+ 5*as.numeric(shock) -rnorm(n,36,15)
-  ## linear combination with a bias
-  
-  y <- ifelse(runif(n) <= plogis(z), 1, 0)
-  library(rms)
-  ddist <- datadist(age, lac, shock, sex)
-  options(datadist='ddist')
-  mod <- lrm(y ~ shock+lac*sex+age)
-  nom <- nomogram(mod,
-                  lp.at=seq(-3,4,by=0.5),
-                  fun=plogis,
-                  fun.at=c(.001,.01,.05,seq(.1,.9,by=.1),.95,.99,.999),
-                  funlabel="Risk of Death",
-                  conf.int=c(0.1, 0.7),
-                  abbrev=TRUE, #had not been working for shock
-                  minlength=1)
-  
-  plot(nom, lplabel="Linear Predictor",
-       fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
-       col.conf=c('red','green'),
-       conf.space=c(0.1,0.5),
-       label.every=3,
-       col.grid = gray(c(0.8, 0.95)),
-       which="shock")
-  legend.nomabbrev(nom, which='shock', x=.5, y=.5)
 
 #######################################################################################
-  #Sign up for shinyapp.io
-  rsconnect::setAccountInfo(name='mufflyt', token='D8846CA8B32E6A5EAEA94BFD02EEEA39', secret='dIXWOv+ud/z6dTPN2xOF9M4BKJtWKROc2cOsZS4U')
+#Sign up for shinyapp.io
 #DynNom
   nomo_fit2 <- rms::lrm(Match_Status_Dichot ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data = data)
   #fit2 <- stats::glm(survived ~ (age + pclass + sex) ^ 3, titanic3, family = "binomial")
   DynNom::DynNom.lrm(nomo_fit2, data, clevel = 0.95, m.summary = "formatted")
-  rsconnect::deployApp('path/to/your/app')
+  #rsconnect::deployApp(appDir = getwd())
   
+  
+  
+  #construction of nomograms
+  setwd("D:/")
+  library(MASS)
+  library(foreign)
+  library(splines)
+  library(rms)
+  lc<-read.spss("NPC_training.sav",use.value.labels=T,to.data.frame=T)
+  attach(lc) 
+  coxm<-cph(Surv(OS,OSstatus)~age+gender+LDH+CRP+Tstage+Nstage+EBV,x=T,y =T,data=lc,surv=T)
+  scoxm<-step(coxm)
+  dd<-datadist(lc)
+  options(datadist="dd")
+  surv<-Survival(scoxm)
+  surv1<-function(x) surv(1*365,lp=x)
+  surv2<-function(x) surv(3*365,lp=x)
+  surv3<-function(x) surv(5*365,lp=x)
+  nom <-nomogram(scoxm,fun=list(surv1,surv2,surv3),lp=F,funlabel=c('1-year survival','3-year survival','5-year survival'),maxscale=100,fun.at=c (1.00,0.95,0.9,0.85,0.8,0.75,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0))
+  plot(nom, xfrac=.45) 
+  print(nom)
+  #resampling internal validation
+  set.seed(1)
+  validate(coxm, B=1000, dxy=TRUE)
+  #calibration @1 years OS
+  coxm<-cph(Surv(OS,OSstatus)~age+gender+LDH+CRP+Tstage+Nstage+EBV,x=T,y =T,data=lc,surv=T,time.inc=365)
+  cal<-calibrate(coxm, cmethod='KM', method='boot',u=365,B=10)
+  cal
+  plot(cal, errbar.col = c(rgb(0, 255, 0, maxColorValue = 255)),col = c(rgb(0, 124, 194, maxColorValue = 255)))
+  box(lwd = 2)
+  R code for nomogram construction and validation-continued
+  abline(0, 1, lty =4, lwd = 2, col = c(rgb(0, 0, 0, maxColorValue = 255)))
+  # calibration @3 years OS
+  coxm<-cph(Surv(OS,OSstatus)~age+gender+LDH+CRP+Tstage+Nstage+EBV,x=T,y =T,data=lc,surv=T,time.inc=1095)
+  cal<-calibrate(coxm, cmethod='KM', method='boot',u=1095,B=10)
+  cal
+  plot(cal, errbar.col = c(rgb(0, 255, 0, maxColorValue = 255)),col = c(rgb(0, 124, 194, maxColorValue = 255)))
+  box(lwd = 2)
+  abline(0, 1, lty =4, lwd = 2, col = c(rgb(0, 0, 0, maxColorValue = 255)))
+  # calibration @5 years OS
+  coxm<-cph(Surv(OS,OSstatus)~age+gender+LDH+CRP+Tstage+Nstage+EBV,x=T,y =T,data=lc,surv=T,time.inc=1825)
+  cal<-calibrate(coxm, cmethod='KM', method='boot',u=1825,B=10)
+  cal
+  plot(cal, errbar.col = c(rgb(0, 255, 0, maxColorValue = 255)),col = c(rgb(0, 124, 194, maxColorValue = 255)))
+  box(lwd = 2)
+  abline(0, 1, lty =4, lwd = 2, col = c(rgb(0, 0, 0, maxColorValue = 255)))
+  #calculation of c-index
+  f<-predict(coxm) x=rcorr.cens(f,Surv(OS,OSstatus))
+  se <- x["S.D."]/2
+  Low95 <- 1-x["C Index"] - 1.96*se Upper95 <- 1-x["C Index"] + 1.96*se cbind(1-x["C Index"], Low95, Upper95)
+  #calculation of c-index for TNM staging
+  x3<- rcorr.cens(stage,Surv(OS,OSstatus)) se <- x3["S.D."]/2
+  Low95 <- 1-x3["C Index"] - 1.96*se Upper95 <- 1-x3["C Index"] + 1.96*se cbind(1-x3["C Index"], Low95, Upper95)
+  #comparison of c-index between different models
+  rcorrp.cens(x1, x2, S, Surv(OS, Status))
