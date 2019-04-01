@@ -1,11 +1,11 @@
 #https://lengyueyang.github.io/Research/Nomogram-rms.html
 #https://www.r-bloggers.com/evaluating-logistic-regression-models/
-
+#https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
 
 #Install and Load packages
 #rm(list=ls())
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "caret")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -53,6 +53,16 @@ data <- read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants
  label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles' 
  label(data) #Check labels for the data set
  
+ ####
+ #Visualize the Data in Graphs
+ # Draw histogram for continuous data
+ ggplot(data) +
+   geom_histogram(aes(x = data$USMLE_Step_1_Score))
+ 
+ # Draw out data for the categorical response variable of matching. 
+ ggplot(data = data, aes(x = data$USMLE_Step_1_Score, y = data$Match_Status_Dichot)) + 
+   geom_jitter(width = 0, height = 0.05, alpha = 0.5) 
+ 
  ################################################################
  #### Building Table 1 ####
  #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
@@ -78,13 +88,10 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
  
  #######################################################################################
  #The first step is to partition the data into training and testing sets.
- #Train <- caret::createDataPartition(GermanCredit$Class, p=0.6, list=FALSE)  
- 
  #A logistic regression model has been built and the coefficients have been examined. However, some critical questions remain. Is the model any good? How well does the model fit the data? Which predictors are most important? Are the predictions accurate? 
  #https://www.r-bloggers.com/evaluating-logistic-regression-models/
  library(caret)
  data <- as.data.frame(data)
- data(data)
  Train <- caret::createDataPartition(data$Match_Status_Dichot, p=0.6, list=FALSE)  
  #p=0.6 = 60% of data into training
  training <- data[ Train, ]  #60% of the data here 
@@ -94,21 +101,14 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
  
  #######################################################################################
 #Using the training dataset, which contains 697 observations, we will use logistic regression to model data$Match_Status_Dichot as a function of the predictors.
- mod_fit <- train(Match_Status_Dichot ~ white_non_white + Gender, data=data, method="glm", family="binomial")
- 
- #Calculate Odds Ratios instead of log odds for each predictor.  
- exp(coef(mod_fit$finalModel))
+ #For Logistic regression we use the binomial family.  
+ colnames(data)
+ mod_fit <- glm(Match_Status_Dichot ~ Self_Identify + Gender + Couples_Match + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Count_of_Non_Peer_Reviewed_Online_Publication + USMLE_Step_2_CS_Score, data=data, family="binomial")
+ print(mod_fit)
  
  #######################################################################################
  #Run stats to see what is <0.1 and should be included into model
- TAB <- table (data$Match_Status, data$Gender)
- barplot(TAB, beside= T, legend=T)
- CHI <- chisq.test(TAB, correct=T)
- attributes(CHI)
- CHI$p.value
- fisher.test(TAB, conf.int=T, conf.level=0.99)
- 
- #chisq.test(data$Match_Status, data$Self_Identify)
+ chisq.test(data$Match_Status, data$Self_Identify)
  chisq.test(data$Match_Status, data$Gender)
  chisq.test(data$Match_Status, data$Couples_Match)
  chisq.test(data$Match_Status, data$Expected_Visa_Status_Dichotomized)
@@ -118,93 +118,68 @@ tab.noby <- tableby(Match_Status ~ white_non_white + Gender + Couples_Match + Al
  chisq.test(data$Match_Status, data$Alpha_Omega_Alpha)
  chisq.test(data$Match_Status, data$US_or_Canadian_Applicant)
  chisq.test(data$Match_Status, data$Gold_Humanism_Honor_Society)
- chisq.test(data$Match_Status, data$Military_Service_Obligation)
+ chisq.test(data$Match_Status, data$Military_Service_Obligation)  #Not significant at all
  chisq.test(data$Match_Status, data$Visa_Sponsorship_Needed)
  chisq.test(data$Match_Status, data$white_non_white)
- chisq.test(data$Match_Status, data$Expected_Visa_Status)
- chisq.test(data$Match_Status, data$Partner_Match)
+ chisq.test(data$Match_Status, data$Expected_Visa_Status) #Not significant at all
+ chisq.test(data$Match_Status, data$Partner_Match) #Zero significance
 
- #See video on YouTube by Bharatendra Rai
- #Two-way table of factor variables to make sure we do not have any data values equal to zero
- xtabs(~Match_Status + USMLE_Step_1_Score, data = data)
- 
- 
-  
 #######################################################################################
 #Now we want to use the model parameters to predict the value of the target variable in a completely new set of observations. That can be done with the predict function.
 predict(mod_fit, newdata=testing)
-predict(mod_fit, newdata=testing, type="prob")
+predict(mod_fit, newdata=testing, type="response")
 
 ## Test out two different models with different variables  
 #  A logistic regression is said to provide a better fit to the data if it demonstrates an improvement over a model with fewer predictors.
-mod_fit_one <- glm(Class ~ Age + ForeignWorker + Property.RealEstate + Housing.Own + 
-                     CreditHistory.Critical, data=training, family="binomial")
+mod_fit_one <- glm(Match_Status_Dichot ~ Self_Identify + Gender + Couples_Match + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Count_of_Non_Peer_Reviewed_Online_Publication + USMLE_Step_2_CS_Score, data=data, family="binomial")
 
-mod_fit_two <- glm(Class ~ Age + ForeignWorker, data=training, family="binomial")
-
-####Likelihood Ratio Test 
-#compares the likelihood of the data under the full model against the likelihood of the data under a model with fewer predictors
-library(lmtest)
-lrtest(mod_fit_one, mod_fit_two) #it is necessary to test whether the observed difference in model fit is statistically significant. Given that H0 holds that the reduced model is true, a p-value for the overall model fit statistic that is less than 0.05 would compel us to reject the null hypothesis
+mod_fit_two <- glm(Match_Status_Dichot ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data=training, family="binomial")
 
 ####Pseudo R^2
 library(pscl)
 pR2(mod_fit_one)  # look for 'McFadden', values closer to zero indicating that the model has no predictive power.
-
-
-####Hosmer-Lemeshow Test
-#It examines whether the observed proportions of events are similar to the predicted probabilities of occurence in subgroups of the data set using a pearson chi square test. Small values with large p-values indicate a good fit to the data while large values with p-values below 0.05 indicate a poor fit. The null hypothesis holds that the model fits the data and in the below example we would reject H0
-library(MKmisc)
-MKmisc::HLgof.test(fit = fitted(mod_fit_one), obs = training$Class)
+pR2(mod_fit_two) 
 
 ####Wald Test - Individual Variable Importance
 #  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
 library(survey)
-regTermTest(mod_fit_one, "ForeignWorker")
-regTermTest(mod_fit_one, "CreditHistory.Critical")
+regTermTest(mod_fit_one, "Self_Identify")
+regTermTest(mod_fit_one, "USMLE_Step_1_Score")
+regTermTest(mod_fit_one, "Misdemeanor_Conviction")  #Drop it because Wald test show p=0.641
+regTermTest(mod_fit_one, "white_non_white") # p=0.07
+regTermTest(mod_fit_one, "Couples_Match") # p=0.08
+regTermTest(mod_fit_one, "Alpha_Omega_Alpha")
+regTermTest(mod_fit_one, "Count_of_Oral_Presentation") #Drop it with p=0.59
+regTermTest(mod_fit_one, "Gold_Humanism_Honor_Society")
+regTermTest(mod_fit_one, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #p=0.5
+regTermTest(mod_fit_one, "Count_of_Peer_Reviewed_Book_Chapter") #Drop it p=0.7
+regTermTest(mod_fit_one, "Military_Service_Obligation") #Drop it, p=0.98
+regTermTest(mod_fit_one, "Other_Service_Obligation") #Drop
+regTermTest(mod_fit_one, "Visa_Sponsorship_Needed") #Drop
+regTermTest(mod_fit_one, "Misdemeanor_Conviction") #Drop
 
 #To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
-caret::varImp(mod_fit)
+caret::varImp(mod_fit_one)
+caret::varImp(mod_fit_two)
 
 #### Validation of Predicted Values
 #The process involves using the model estimates to predict values on the training set. Afterwards, we will compared the predicted target variable versus the observed values for each observation. 
-
-pred = predict(mod_fit, newdata=testing)
-accuracy <- table(pred, testing[,"Class"])
+pred = predict(mod_fit_one, newdata=testing)
+accuracy <- table(pred, testing[,"Match_Status_Dichot"])
 sum(diag(accuracy))/sum(accuracy)
 
-pred = predict(mod_fit, newdata=testing)
-confusionMatrix(data=pred, testing$Class)
 
 ####Test Area Under the Curve
-library(pROC)
-# Compute AUC for predicting Class with the variable CreditHistory.Critical
-f1 = roc(Class ~ CreditHistory.Critical, data=training) 
-plot(f1, col="red")
-pROC::auc(formula = Class ~ CreditHistory.Critical, data = training)
-
 library(ROCR)
-# Compute AUC for predicting Class with the model
-prob <- predict(mod_fit_one, newdata=testing, type="response")
-pred <- prediction(prob, testing$Class)
+# Compute AUC for predicting Match_Status_Dichot with the model
+prob <- predict(mod_fit_two, newdata=testing, type="response")
+pred <- prediction(prob, testing$Match_Status_Dichot)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 plot(perf)
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
-auc
+auc  #As suspected the second model is the better with AUC of 0.82
 
-
-####K-Fold Cross Validation
-#When evaluating models, we often want to assess how well it performs in predicting the target variable on different subsets of the data. One such technique for doing this is k-fold cross-validation, which partitions the data into k equally sized segments (called ‘folds’). One fold is held out for validation while the other k-1 folds are used to train the model and then used to predict the target variable in our testing data. This process is repeated k times, with the performance of each model in predicting the hold-out set being tracked using a performance metric such as accuracy. The most common variation of cross validation is 10-fold cross-validation.
-
-ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
-
-mod_fit <- train(Class ~ Age + ForeignWorker + Property.RealEstate + Housing.Own + 
-                   CreditHistory.Critical,  data=GermanCredit, method="glm", family="binomial",
-                 trControl = ctrl, tuneLength = 5)
-
-pred = predict(mod_fit, newdata=testing)
-confusionMatrix(data=pred, testing$Class)
 
 ##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
 #fun.at - Demarcations on the function axis: "Matching into obgyn"
