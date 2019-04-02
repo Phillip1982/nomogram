@@ -7,7 +7,7 @@
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -77,23 +77,23 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
 full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/full_data.rds")) 
  #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
 colnames(full_data)
-tab.noby <- tableby(Match_Status ~ Self_Identify + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_School_Type + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Misdemeanor_Conviction  + Expected_Visa_Status_Dichotomized, data=full_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("meansd", "median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+table1 <- tableby(Match_Status ~ Self_Identify + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_School_Type + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Misdemeanor_Conviction  + Expected_Visa_Status_Dichotomized, data=full_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("meansd", "median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
  
  #labels
- labels(tab.noby)
+ labels(table1)
  
  #show the table
- summary(tab.noby, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
+ summary(table1, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
  
  #Adjust for Bonferroni for multiple p-values
- padjust(tab.noby, method = "bonferroni")
- summary(tab.noby, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
+ padjust(table1, method = "bonferroni")
+ summary(table1, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
  
  #Write to HTML
- write2html(tab.noby, paste0("~/Dropbox/Nomogram/nomogram/results/table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")
+ arsenal::write2html(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")
  
  #Write to word
- arsenal::write2word(tab.noby, paste0("~/Dropbox/Nomogram/nomogram/results/table1.doc"))
+ arsenal::write2word(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.doc"))
  
  #######################################################################################
  #Run stats to see what is <0.1 and should be included into model
@@ -122,6 +122,7 @@ tab.noby <- tableby(Match_Status ~ Self_Identify + Gender + Couples_Match + US_o
 #For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
 #mod_fit has all variables included
   colnames(data)
+ data$Match_Status <- as.factor(data$Match_Status)
  mod_fit <- glm(Match_Status ~ Gender + Couples_Match + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Count_of_Non_Peer_Reviewed_Online_Publication, data=data, family="binomial")
  print(mod_fit)
 
@@ -221,7 +222,9 @@ ddist <- datadist(data)
 ddist
 options (datadist = 'ddist')
 
-model.binomial.significant <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation, data = data, x=TRUE, y=TRUE)
+# Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
+
+model.binomial.significant <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter, data = data, x=TRUE, y=TRUE)
 print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
   
   #######################################################################################
@@ -240,7 +243,7 @@ print(model.binomial.significant)  #Check the C-statistic which is the same as R
                           abbrev = F,
                           minlength = 9)
   
-  plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
+  nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
        cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
        #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
        #col.conf=c('red','green'),
@@ -251,12 +254,13 @@ print(model.binomial.significant)  #Check the C-statistic which is the same as R
   print(nomo_from_model.binomial.significant)
   #legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
   
+  
   #######################################################################################
   #Sign up for shinyapp.io
   #DynNom
-  nomo_fit2 <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation, data = data)
+  dyno_nomo <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation, data = data)
   #fit2 <- stats::glm(survived ~ (age + pclass + sex) ^ 3, titanic3, family = "binomial")
-  DynNom::DynNom.lrm(nomo_fit2, data, clevel = 0.95, m.summary = "formatted")
+  DynNom::DynNom.lrm(dyno_nomo, data, clevel = 0.95, m.summary = "formatted")
   #rsconnect::deployApp(appDir = getwd())
   
   
