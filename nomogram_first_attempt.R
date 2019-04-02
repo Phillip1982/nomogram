@@ -33,6 +33,7 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ################################################################
  #Data cleaning, Place nicer labels for the data
  #label(data$Self_Identify)    <- 'Race/Ethnicity'
+ label(data$Age)    <- 'Age'
  label(data$Alpha_Omega_Alpha) <- 'AOA Member'
  label(data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
  label(data$Gender) <- 'Gender'
@@ -59,7 +60,7 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ##plot relevant features for lots of variables
  colnames(data)
  features <-colnames(data)
- features_rel<-features [3:25]   
+ features_rel<-features [3:32]   
  
  for( i in features_rel ){
    
@@ -74,10 +75,37 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ################################################################
  #### Building Table 1 ####
  #Bring in the full data set
-full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/full_data.rds")) 
+full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_fill_46.rds")) 
  #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
 colnames(full_data)
-table1 <- tableby(Match_Status ~ Self_Identify + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_School_Type + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Misdemeanor_Conviction  + Expected_Visa_Status_Dichotomized, data=full_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("meansd", "median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+table1 <- tableby(Match_Status ~ 
+                    Self_Identify + 
+                    white_non_white + 
+                    Age + 
+                    Gender + 
+                    Couples_Match + 
+                    Expected_Visa_Status_Dichotomized + 
+                    US_or_Canadian_Applicant + 
+                    Medical_School_Type + 
+                    Medical_Education_or_Training_Interrupted + 
+                    Misdemeanor_Conviction + 
+                    Alpha_Omega_Alpha + 
+                    Gold_Humanism_Honor_Society + 
+                    Military_Service_Obligation + 
+                    USMLE_Step_1_Score + 
+                    Military_Service_Obligation + 
+                    Count_of_Poster_Presentation + 
+                    Count_of_Oral_Presentation + 
+                    Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                    Count_of_Peer_Reviewed_Book_Chapter + 
+                    Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                    Count_of_Peer_Reviewed_Online_Publication + 
+                    Misdemeanor_Conviction  + 
+                    Expected_Visa_Status_Dichotomized + 
+                    Visa_Sponsorship_Needed, #+
+                    #Medical_Degree +
+                    #Medical_School_Country, 
+                  data=full_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("meansd", "median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
  
  #labels
  labels(table1)
@@ -96,38 +124,75 @@ table1 <- tableby(Match_Status ~ Self_Identify + Gender + Couples_Match + US_or_
  arsenal::write2word(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.doc"))
  
  #######################################################################################
- #Run stats to see what is <0.1 and should be included into model
+ #Keep predictors in the binary logistic regression model that have a p<0.10 a priori to create nomogram
  colnames(data)
- chisq.test(data$Match_Status, data$white_non_white)
- chisq.test(data$Match_Status, data$Gender)
- chisq.test(data$Match_Status, data$Couples_Match)
- chisq.test(data$Match_Status, data$Expected_Visa_Status_Dichotomized)
+ t.test(data$Age~data$Match_Status) #SS # where y is numeric and x is a binary factor
+ chisq.test(data$Match_Status, data$white_non_white) #SS
+ chisq.test(data$Match_Status, data$Gender) #SS
+ chisq.test(data$Match_Status, data$Couples_Match) #SS
+ t.test(data$USMLE_Step_1_Score~data$Match_Status) #SS
+ chisq.test(data$Match_Status, data$Expected_Visa_Status_Dichotomized) #SS
  #chisq.test(data$Match_Status, data$Med_school_condensed)
- chisq.test(data$Match_Status, data$Medical_Education_or_Training_Interrupted)
- chisq.test(data$Match_Status, data$Misdemeanor_Conviction)
- chisq.test(data$Match_Status, data$Alpha_Omega_Alpha)
- chisq.test(data$Match_Status, data$US_or_Canadian_Applicant)
- chisq.test(data$Match_Status, data$Gold_Humanism_Honor_Society)
+ chisq.test(data$Match_Status, data$Medical_Education_or_Training_Interrupted) #SS
+ chisq.test(data$Match_Status, data$Misdemeanor_Conviction) #SS
+ chisq.test(data$Match_Status, data$Alpha_Omega_Alpha) #SS
+ chisq.test(data$Match_Status, data$US_or_Canadian_Applicant) #SS
+ chisq.test(data$Match_Status, data$Gold_Humanism_Honor_Society) #SS
  chisq.test(data$Match_Status, data$Military_Service_Obligation)  #Not significant at all
- chisq.test(data$Match_Status, data$Visa_Sponsorship_Needed)
- chisq.test(data$Match_Status, data$white_non_white)
- chisq.test(data$Match_Status, data$Expected_Visa_Status) #Not significant at all
- chisq.test(data$Match_Status, data$Partner_Match) #Zero significance
- chisq.test(data$Match_Status, data$Count_of_Poster_Presentation)
- chisq.test(data$Match_Status, data$Count_of_Oral_Presentation)
- chisq.test(data$Match_Status, data$Count_of_Peer_Reviewed_Book_Chapter)
- chisq.test(data$Match_Status, data$Count_of_Peer_Reviewed_Online_Publication)  #Not significant
+ chisq.test(data$Match_Status, data$Visa_Sponsorship_Needed) #SS
+ chisq.test(data$Match_Status, data$white_non_white) #SS
+ chisq.test(data$Match_Status, data$Expected_Visa_Status) #NS
+ chisq.test(data$Match_Status, data$Partner_Match) #NS
+ t.test(data$Count_of_Poster_Presentation ~ data$Match_Status) #SS
+ t.test(data$Count_of_Oral_Presentation ~ data$Match_Status)  #NS
+ t.test(data$Count_of_Peer_Reviewed_Book_Chapter ~ data$Match_Status) #NS
+ t.test(data$Count_of_Peer_Reviewed_Online_Publication ~ data$Match_Status) #NS
  #######################################################################################
 
 #For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
 #mod_fit has all variables included
   colnames(data)
  data$Match_Status <- as.factor(data$Match_Status)
- mod_fit <- glm(Match_Status ~ Gender + Couples_Match + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Count_of_Non_Peer_Reviewed_Online_Publication, data=data, family="binomial")
+ mod_fit <- glm(Match_Status ~ 
+                  Age + 
+                  white_non_white + 
+                  Gender + 
+                  Couples_Match + 
+                  Expected_Visa_Status_Dichotomized +
+                  US_or_Canadian_Applicant + 
+                  Medical_School_Type + 
+                  Alpha_Omega_Alpha + 
+                  Gold_Humanism_Honor_Society + 
+                  USMLE_Step_1_Score +  
+                  Military_Service_Obligation + 
+                  Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                  Count_of_Peer_Reviewed_Book_Chapter + 
+                  Count_of_Poster_Presentation + 
+                  Other_Service_Obligation + 
+                  Visa_Sponsorship_Needed + 
+                  Count_of_Non_Peer_Reviewed_Online_Publication + 
+                  Medical_Education_or_Training_Interrupted + 
+                  Misdemeanor_Conviction, 
+                data=data, family="binomial")
  print(mod_fit)
 
  #mod_fit_two has only the univariate statistically significant values 
-mod_fit_two <- glm(Match_Status ~ Gender + white_non_white + Couples_Match + US_or_Canadian_Applicant  + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter, data=data, family="binomial")
+mod_fit_two <- glm(Match_Status ~ 
+                   Age +  #Univariate SS
+                   Gender + #Univariate SS
+                   white_non_white + #Univariate SS
+                   Couples_Match + #Univariate SS
+                   USMLE_Step_1_Score + #Univariate SS
+                   Expected_Visa_Status_Dichotomized + #Univariate SS
+                   Medical_Education_or_Training_Interrupted + #Univariate SS
+                   Misdemeanor_Conviction + #Univariate SS
+                   Alpha_Omega_Alpha + #Univariate SS
+                   US_or_Canadian_Applicant + #Univariate SS
+                   Gold_Humanism_Honor_Society + #Univariate SS
+                   Visa_Sponsorship_Needed + #Univariate SS
+                   white_non_white + #Univariate SS
+                   Count_of_Poster_Presentation,#Univariate SS
+                   data=data, family="binomial")
 print(mod_fit_two)
  
 ####Pseudo R^2
@@ -139,30 +204,42 @@ pR2(mod_fit_two)
 #  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
 library(survey)
 #Keep p<0.3
-regTermTest(mod_fit, "Gender") #p=0.24, good
-regTermTest(mod_fit, "white_non_white") # p=0.07
-regTermTest(mod_fit, "Couples_Match") # p=0.018, KEEP
-regTermTest(mod_fit, "Expected_Visa_Status_Dichotomized") #p=0.35
-regTermTest(mod_fit, "Medical_Education_or_Training_Interrupted") #p=0.75, DROP
-regTermTest(mod_fit, "Alpha_Omega_Alpha")
-regTermTest(mod_fit, "USMLE_Step_1_Score")
-regTermTest(mod_fit, "US_or_Canadian_Applicant")
-regTermTest(mod_fit, "Gold_Humanism_Honor_Society")
-regTermTest(mod_fit, "Count_of_Oral_Presentation") # p=0.41, KEEP
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #p=0.64, DROP
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #p=0.64, DROP
-regTermTest(mod_fit, "Count_of_Poster_Presentation") # KEEP!
-regTermTest(mod_fit, "Misdemeanor_Conviction")  #Drop it because Wald test show p=0.641
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #Drop it p=0.7
-regTermTest(mod_fit, "Military_Service_Obligation") #Drop it, p=0.98
-regTermTest(mod_fit, "Other_Service_Obligation") #Drop
-regTermTest(mod_fit, "Visa_Sponsorship_Needed") #p=0.20
+regTermTest(mod_fit, "Age") #Wald Test p=0.42, fair
+regTermTest(mod_fit, "Gender") #Wald Test p=0.30, good
+regTermTest(mod_fit, "white_non_white") # Wald Test p=0.30
+regTermTest(mod_fit, "Couples_Match") # Wald Test p=0.048, KEEP
+regTermTest(mod_fit, "Expected_Visa_Status_Dichotomized") #Wald Testp=0.35
+regTermTest(mod_fit, "Medical_Education_or_Training_Interrupted") #Wald Test p=0.75, DROP
+regTermTest(mod_fit, "Alpha_Omega_Alpha") # Wald Test p=0.5
+regTermTest(mod_fit, "USMLE_Step_1_Score") #Wald Test p=0.025
+regTermTest(mod_fit, "US_or_Canadian_Applicant") #Wald Test p0.98
+regTermTest(mod_fit, "Gold_Humanism_Honor_Society") #Wald Test p=0.01
+regTermTest(mod_fit, "Count_of_Oral_Presentation") # Wald Test p=0.47, KEEP
+regTermTest(mod_fit, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #Wald Test p=0.64, DROP
+regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test p=0.64, DROP
+regTermTest(mod_fit, "Count_of_Poster_Presentation") #Wald Test  KEEP!
+regTermTest(mod_fit, "Misdemeanor_Conviction")  #Wald Test Drop it because Wald test show p=0.641
+regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test Drop it p=0.7
+regTermTest(mod_fit, "Military_Service_Obligation") #Wald Test Drop it, p=0.98
+regTermTest(mod_fit, "Other_Service_Obligation") #Wald Test Drop
+regTermTest(mod_fit, "Visa_Sponsorship_Needed") #Wald Test p=0.20
 
 #To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
 caret::varImp(mod_fit)
  
-#mod_fit_three has only the Wald and varImp values 
-mod_fit_three <- glm(Match_Status ~ Gender + white_non_white + Couples_Match + US_or_Canadian_Applicant  + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Visa_Sponsorship_Needed, data=data, family="binomial")
+#mod_fit_two has only the univariate statistically significant values 
+mod_fit_three <- glm(Match_Status ~ 
+                     Age + #Univariate SS  #Wald Test p=0.40, fair
+                     Gender + #Univariate SS  #Wald Test p=0.30, good
+                     white_non_white + #Univariate SS,  # p=0.30
+                     Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                     USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                     Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35
+                     Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                     Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                     Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                     Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
+                   data=data, family="binomial")
 print(mod_fit_three)
  
  #######################################################################################
@@ -199,6 +276,29 @@ predict(mod_fit, newdata=testing, type="response")
 #accuracy <- table(pred, testing[,"Match_Status"])
 #sum(diag(accuracy))/sum(accuracy)
 
+###### Now that we have picked the variables and the best model.  
+colnames(data)
+ddist <- datadist(data)
+ddist
+options (datadist = 'ddist')
+
+# Logistic Regression Model #
+# Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
+#I removed Expected_Visa_Status_Dichot and Visa_sponsorship_needed because they fell out in Logistic regresn
+model.binomial.significant <- rms::lrm(Match_Status ~ 
+             Age + #Univariate SS  #Wald Test p=0.40, fair
+             Gender + #Univariate SS  #Wald Test p=0.30, good
+             white_non_white + #Univariate SS,  # p=0.30
+             Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+             USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+             #Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35, #lrm p-value of 0.92
+             Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+             Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+             #Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20,          #lrm p-value of 0.21
+             Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
+             data = data, x=TRUE, y=TRUE)
+print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
+
 ####Test Area Under the Curve
 library(ROCR)
 # Compute AUC for predicting Match_Status_Dichot with the model
@@ -208,25 +308,8 @@ perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 plot(perf)
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
-auc  #As suspected the second model is the better with AUC of 0.810
+auc  
 
-######Now that we have picked the variables and the best model.  
-
-#Keep predictors in the binary logistic regression model that have a p<0.10 a priori to create nomogram
-#Drop Visa_sponsorship as p=0.433
-#Drop Count_of_Peer_Reviewed_Book_Chapter as p=0.75
-#Drop Count_of_Oral_Presentation as p = 0.32
-#Drop Gender as p=0.20
-colnames(data)
-ddist <- datadist(data)
-ddist
-options (datadist = 'ddist')
-
-# Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
-
-model.binomial.significant <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter, data = data, x=TRUE, y=TRUE)
-print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-  
   #######################################################################################
   ###NOMOGRAM 
   ##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
@@ -256,18 +339,15 @@ print(model.binomial.significant)  #Check the C-statistic which is the same as R
   
   
   #######################################################################################
-  #Sign up for shinyapp.io
-  #DynNom
-  dyno_nomo <- rms::lrm(Match_Status ~ white_non_white + US_or_Canadian_Applicant + Couples_Match + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Poster_Presentation, data = data)
-  #fit2 <- stats::glm(survived ~ (age + pclass + sex) ^ 3, titanic3, family = "binomial")
-  DynNom::DynNom.lrm(dyno_nomo, data, clevel = 0.95, m.summary = "formatted")
-  #rsconnect::deployApp(appDir = getwd())
+  DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
   
+  #If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
   
+  #Hurts student if they do not get a grade at Stanford clerkship.  
   
+  #Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
   
-  
-  
+  #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
   
   
   #######################################################################################
