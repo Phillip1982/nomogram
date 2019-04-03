@@ -123,7 +123,7 @@ table1 <- tableby(Match_Status ~
  summary(table1, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
  
  #Write to HTML
- arsenal::write2html(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")
+ arsenal::write2html(table1, ("~/Dropbox/Nomogram/nomogram/results/table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")
  
  #Write to word
  arsenal::write2word(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.doc"))
