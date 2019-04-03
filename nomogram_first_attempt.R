@@ -29,7 +29,7 @@ setwd("~/Dropbox/Nomogram/nomogram")     #Set working directory
 
 ################################################################
 #Load Data
-data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_reorder_cols_54.rds")) #40 has filled data so all fields are complete
+data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds")) #40 has filled data so all fields are complete
 #Carat gets confused by tibbles so convert to data.frame  
 
  
@@ -57,7 +57,8 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  label(data$Other_Service_Obligation) <- 'Other Service Obligation'
  #label(data$Med_school_condensed) <- 'Medical School Condensed' 
  label(data$white_non_white) <- 'Race' 
- label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles' 
+ label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+ label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
  label(data) #Check labels for the data set
 
  ##plot relevant features for lots of variables
@@ -78,7 +79,7 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ################################################################
  #### Building Table 1 ####
  #Bring in the full data set
-full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_fill_48.rds")) 
+full_data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_fill_48.rds")) 
  #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
 colnames(full_data)
 table1 <- tableby(Match_Status ~ 
@@ -145,7 +146,7 @@ table1 <- tableby(Match_Status ~
  chisq.test(data$Match_Status, data$Military_Service_Obligation)  #Not significant at all
  chisq.test(data$Match_Status, data$Visa_Sponsorship_Needed) #SS
  chisq.test(data$Match_Status, data$white_non_white) #SS
- chisq.test(data$Match_Status, data$Expected_Visa_Status) #NS
+ chisq.test(data$Match_Status, data$Expected_Visa_Status) #SS
  chisq.test(data$Match_Status, data$Partner_Match) #NS
  t.test(data$Count_of_Poster_Presentation ~ data$Match_Status) #SS
  t.test(data$Count_of_Oral_Presentation ~ data$Match_Status)  #NS
@@ -165,7 +166,7 @@ colnames(data)
                   Couples_Match + 
                   Expected_Visa_Status_Dichotomized +
                   US_or_Canadian_Applicant + 
-                  Medical_School_Type + 
+                  #Medical_School_Type + 
                   Alpha_Omega_Alpha + 
                   Gold_Humanism_Honor_Society + 
                   USMLE_Step_1_Score +  
@@ -197,8 +198,8 @@ mod_fit_two <- glm(Match_Status ~
                    US_or_Canadian_Applicant + #Univariate SS
                    Gold_Humanism_Honor_Society + #Univariate SS
                    Visa_Sponsorship_Needed + #Univariate SS
-                   white_non_white + #Univariate SS
-                   Count_of_Poster_Presentation,#Univariate SS
+                   Count_of_Poster_Presentation +  #Univariate SS
+                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
                    data=data, family="binomial")
 print(mod_fit_two)
  
@@ -211,30 +212,29 @@ pR2(mod_fit_two)
 #  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
 library(survey)
 #Keep p<0.3
-regTermTest(mod_fit, "Age") #Wald Test p=0.42, fair
-regTermTest(mod_fit, "Gender") #Wald Test p=0.30, good
-regTermTest(mod_fit, "white_non_white") # Wald Test p=0.30
-regTermTest(mod_fit, "Couples_Match") # Wald Test p=0.048, KEEP
-regTermTest(mod_fit, "Expected_Visa_Status_Dichotomized") #Wald Testp=0.35
-regTermTest(mod_fit, "Medical_Education_or_Training_Interrupted") #Wald Test p=0.75, DROP
-regTermTest(mod_fit, "Alpha_Omega_Alpha") # Wald Test p=0.5
-regTermTest(mod_fit, "USMLE_Step_1_Score") #Wald Test p=0.025
-regTermTest(mod_fit, "US_or_Canadian_Applicant") #Wald Test p0.98
-regTermTest(mod_fit, "Gold_Humanism_Honor_Society") #Wald Test p=0.01
-regTermTest(mod_fit, "Count_of_Oral_Presentation") # Wald Test p=0.47, KEEP
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #Wald Test p=0.64, DROP
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test p=0.64, DROP
-regTermTest(mod_fit, "Count_of_Poster_Presentation") #Wald Test  KEEP!
-regTermTest(mod_fit, "Misdemeanor_Conviction")  #Wald Test Drop it because Wald test show p=0.641
-regTermTest(mod_fit, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test Drop it p=0.7
-regTermTest(mod_fit, "Military_Service_Obligation") #Wald Test Drop it, p=0.98
-regTermTest(mod_fit, "Other_Service_Obligation") #Wald Test Drop
-regTermTest(mod_fit, "Visa_Sponsorship_Needed") #Wald Test p=0.20
+regTermTest(mod_fit_two, "Age") #Wald Test p=0.30, good
+regTermTest(mod_fit_two, "Gender") #Wald Test p=0.30, good
+regTermTest(mod_fit_two, "white_non_white") # Wald Test p=0.30
+regTermTest(mod_fit_two, "Couples_Match") # Wald Test p=0.048, KEEP
+regTermTest(mod_fit_two, "Expected_Visa_Status_Dichotomized") #Wald Testp=0.35
+regTermTest(mod_fit_two, "Medical_Education_or_Training_Interrupted") #Wald Test p=0.75, DROP??
+regTermTest(mod_fit_two, "Alpha_Omega_Alpha") # Wald Test p=0.5
+regTermTest(mod_fit_two, "USMLE_Step_1_Score") #Wald Test p=0.025
+regTermTest(mod_fit_two, "US_or_Canadian_Applicant") #Wald Test p0.98
+regTermTest(mod_fit_two, "Gold_Humanism_Honor_Society") #Wald Test p=0.01
+regTermTest(mod_fit_two, "Count_of_Oral_Presentation") # Wald Test p=0.47, KEEP
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #Wald Test p=0.64, DROP
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test p=0.64, DROP
+regTermTest(mod_fit_two, "Count_of_Poster_Presentation") #Wald Test  KEEP!
+regTermTest(mod_fit_two, "Misdemeanor_Conviction")  #Wald Test Drop it because Wald test show p=0.641
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test Drop it p=0.7
+regTermTest(mod_fit_two, "Military_Service_Obligation") #Wald Test Drop it, p=0.43
+regTermTest(mod_fit_two, "Other_Service_Obligation") #Wald Test Drop
+regTermTest(mod_fit_two, "Visa_Sponsorship_Needed") #Wald Test p=0.20
 
 #To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
-caret::varImp(mod_fit)
+caret::varImp(mod_fit_two)
  
-#mod_fit_two has only the univariate statistically significant values 
 mod_fit_three <- glm(Match_Status ~ 
                      Age + #Univariate SS  #Wald Test p=0.40, fair
                      Gender + #Univariate SS  #Wald Test p=0.30, good
@@ -245,44 +245,16 @@ mod_fit_three <- glm(Match_Status ~
                      Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
                      Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
                      Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
-                     Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
+                     Count_of_Poster_Presentation +
+                       Medical_Education_or_Training_Interrupted + #Univariate SS
+                       Misdemeanor_Conviction + #Univariate SS
+                       US_or_Canadian_Applicant + #Univariate SS
+                       Visa_Sponsorship_Needed + #Univariate SS
+                       Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
                    data=data, family="binomial")
 print(mod_fit_three)
+plot(mod_fit_three)
  
- #######################################################################################
- #Calibration - The first step is to partition the data into training and testing sets.
- #A logistic regression model has been built and the coefficients have been examined. However, some critical questions remain. Is the model any good? How well does the model fit the data? Which predictors are most important? Are the predictions accurate? 
- #https://www.r-bloggers.com/evaluating-logistic-regression-models/
- library(caret)
- data <- as.data.frame(data)
- Train <- caret::createDataPartition(data$Match_Status, p=0.6, list=FALSE)  
- #p=0.6 = 60% of data into training
- training <- data[ Train, ]  #60% of the data here 
- dim(training)
- testing <- data[ -Train, ]   #40% of the data here
- dim(testing)
- 
- #######################################################################################
-#Using the training dataset, which contains 697 observations, we will use logistic regression to model data$Match_Status_Dichot as a function of the predictors.
-
-#######################################################################################
-#Now we want to use the model parameters to predict the value of the target variable in a completely new set of observations. That can be done with the predict function.
-predict(mod_fit, newdata=testing)
-predict(mod_fit, newdata=testing, type="response")
-
-## Test out two different models with different variables  
-#  A logistic regression is said to provide a better fit to the data if it demonstrates an improvement over a model with fewer predictors.
-#mod_fit <- glm(Match_Status ~ Gender + Couples_Match + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Poster_Presentation + Military_Service_Obligation + Other_Service_Obligation + Visa_Sponsorship_Needed + Count_of_Non_Peer_Reviewed_Online_Publication, data=data, family="binomial")
-
-#mod_fit_two <- glm(Match_Status ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data=training, family="binomial")
-
-
-#### Validation of Predicted Values
-#The process involves using the model estimates to predict values on the training set. Afterwards, we will compared the predicted target variable versus the observed values for each observation. 
-#pred = predict(mod_fit_one, newdata=testing)
-#accuracy <- table(pred, testing[,"Match_Status"])
-#sum(diag(accuracy))/sum(accuracy)
-
 ###### Now that we have picked the variables and the best model.  
 colnames(data)
 ddist <- datadist(data)
@@ -291,18 +263,22 @@ options (datadist = 'ddist')
 
 # Logistic Regression Model #
 # Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
-#I removed Expected_Visa_Status_Dichot and Visa_sponsorship_needed because they fell out in Logistic regresn
 model.binomial.significant <- rms::lrm(Match_Status ~ 
-             Age + #Univariate SS  #Wald Test p=0.40, fair
-             Gender + #Univariate SS  #Wald Test p=0.30, good
-             white_non_white + #Univariate SS,  # p=0.30
-             Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
-             USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
-             #Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35, #lrm p-value of 0.92
-             Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
-             Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
-             #Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20,          #lrm p-value of 0.21
-             Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
+                                         Age + #Univariate SS  #Wald Test p=0.40, fair
+                                         Gender + #Univariate SS  #Wald Test p=0.30, good
+                                         white_non_white + #Univariate SS,  # p=0.30
+                                         Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                                         USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                                         Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35
+                                         Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                                         Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                                         Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                                         Count_of_Poster_Presentation +
+                                         Medical_Education_or_Training_Interrupted + #Univariate SS
+                                         Misdemeanor_Conviction + #Univariate SS
+                                         US_or_Canadian_Applicant + #Univariate SS
+                                         Visa_Sponsorship_Needed + #Univariate SS
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
              data = data, x=TRUE, y=TRUE)
 print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
 
@@ -315,7 +291,7 @@ perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 plot(perf)
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
-auc  
+auc  #81% AUC
 
   #######################################################################################
   ###NOMOGRAM 
@@ -467,148 +443,188 @@ auc
                                            Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
                                          data = data, x=TRUE, y=TRUE)
   print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-###################################################################################
-  data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_select_58.rds"))
+
+  ################################################################################
+  data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_58.rds"))
   
   vis_miss(data, warn_large_data = FALSE)  #looks for missing data
   dim(data)
   data <- na.omit(data)  #removed any rows with NAs
   dim(data)
   vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-  
-  
-  # Get the number of observations
-  n_obs <- nrow(data)
-  
-  # Shuffle row indices: permuted_rows
-  permuted_rows <- sample(n_obs)
-  
-  # Randomly order data: Sonar
-  Sonar_shuffled <- data[permuted_rows, ]
-  
-  # Identify row to split on: split
-  split <- round(n_obs * 0.6)
-  
-  # Create train
-  train <- Sonar_shuffled[1:split, ]
-  
-  # Create test
-  test <- Sonar_shuffled[(split + 1):n_obs, ]
-
-  #Check to make sure all variables are int or Factors
   str(data)
   
-  # Fit glm model: model
-  model <- glm(Match_Status ~ .,
-               family = "binomial", train)
+  test_model <- glm(Match_Status~., family = "binomial", data=train)  
+  summary(test_model)
+  require(pROC)
+  pred <- predict(test_model, type='response')
+  tmp <- pROC::roc(data$Match_Status[!is.na(data$Match_Status)]~ pred, plot=TRUE, percent=TRUE)
   
-  # Predict on test: p
-  p <- predict(model, test, type = "response")
-  summary (p)
-  #Confusion matrix - This is where there is confusion in the model and it predicts one outcome rather than the other.  
-  # If p exceeds threshold of 0.5, M else R: m_or_r
-  match_or_no_match <- ifelse(p > 0.5, "No_Match", "Student_Matched")
+  smaller_model <- glm(formula = Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, family = "binomial", data=train)  
+  summary(smaller_model)
   
-  # Convert to factor: p_class
-  p_class <- factor(match_or_no_match, levels = levels(test[["Match_Status"]]))
+  a <- arsenal::modelsum(Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, data=train, family = "binomial")
+  summary(a, text=T, show.intercept = F)
   
-  # Create confusion matrix
-  confusionMatrix(p_class, test[["Match_Status"]])  #Look at Accuracy statistic that is not very impressive at 0.31
+  fitall <- modelsum(Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, data=data, family=binomial, binomial.stats=c("Nmiss2","OR","p.value"))
+  summary(fitall)
   
-  # Make ROC curve
-  colAUC(p, test[["Match_Status"]], plotROC = TRUE)  #Models that are 50% accurate follows the diagnal line
   
-  #Area under the curve of 0.5 is a model with a random guess and 1.0 is perfect
-  #AUC can be thought of as a letter grade with A of 0.9
-  # Create trainControl object: myControl
-  
-  myControl <- trainControl(
-    method = "cv",
-    number = 10,          #10-fold cross-validation 
-    summaryFunction = twoClassSummary,
-    classProbs = TRUE, # IMPORTANT!
-    verboseIter = TRUE
-  )
-  
-  # Train glm with custom trainControl: model
-  model <- train(
-    Match_Status ~ ., 
-    data, 
-    method = "glm",
-    trControl = myControl
-  )
-  
-  # Print model to console
-  model
+  ################################################################################
+  # Random Forest in R YouTube video by Bharatendra Rai
+  rf <- randomForest(Match_Status ~ Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation, data=train)
+rf  
+attributes(rf)
+af$confusion
+plot(rf) #Looking at confusion matrix the class.error shows that the model is not as good at predicting students who will not match.  
 
-  
-  
-  # Fit random forest: model
-  model <- train(
-    Match_Status ~ .,
-    tuneLength = 3,
-    data = data, 
-    method = "ranger",
-    trControl = trainControl(
-      method = "cv", 
-      number = 5, 
-      verboseIter = TRUE
-    )
-  )
-  
-  # Print model to console
-  model  
-  plot(model)  
 
-  # Define the tuning grid: tuneGrid
-  tuneGrid <- data.frame(
-    .mtry = c(25, 13, 4, 5),
-    .splitrule = "variance",
-    .min.node.size = 5
-  )    
-  
-  # Hand tune the model
-  model <- train(
-    Match_Status ~ .,
-    tuneGrid = tuneGrid, 
-    data = data, 
-    method = "ranger",
-    trControl = trainControl(
-      method = "cv", 
-      number = 5, 
-      verboseIter = TRUE
-    )
-  )
-  
-  # Print model to console
-  model  
-  plot(model)   #output shows mtry=2
-  
-  
-  ##glmnet model can pick out predictors for you
-  # Create custom trainControl: myControl
-  myControl <- trainControl(
+
+
+###################################################################################
+data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds"))
+
+vis_miss(data, warn_large_data = FALSE)  #looks for missing data
+dim(data)
+data <- na.omit(data)  #removed any rows with NAs
+dim(data)
+vis_miss(data, warn_large_data = FALSE)  #looks for missing data
+str(data)
+
+# Get the number of observations
+n_obs <- nrow(data)
+n_obs
+
+# Shuffle row indices: permuted_rows
+permuted_rows <- sample(n_obs)
+permuted_rows
+# Randomly order data: Sonar
+Sonar_shuffled <- data[permuted_rows, ]
+
+# Identify row to split on: split
+split <- round(n_obs * 0.6)
+
+# Create train
+train <- Sonar_shuffled[1:split, ]
+
+# Create test
+test <- Sonar_shuffled[(split + 1):n_obs, ]
+
+#Check to make sure all variables are int or Factors
+str(data)
+
+# Fit glm model: model
+model <- glm(Match_Status ~ .,
+             family = "binomial", train)
+summary(model)
+
+# Predict on test: p
+p <- predict(model, test, type = "response")
+summary (p)
+#Confusion matrix - This is where there is confusion in the model and it predicts one outcome rather than the other.  
+# If p exceeds threshold of 0.5, M else R: m_or_r
+match_or_no_match <- ifelse(p > 0.5, "No_Match", "Student_Matched")
+
+# Convert to factor: p_class
+p_class <- factor(match_or_no_match, levels = levels(test[["Match_Status"]]))
+
+# Create confusion matrix
+confusionMatrix(p_class, test[["Match_Status"]])  #Look at Accuracy statistic that is not very impressive at 0.31
+
+# Make ROC curve
+colAUC(p, test[["Match_Status"]], plotROC = TRUE)  #Models that are 50% accurate follows the diagnal line
+
+#Area under the curve of 0.5 is a model with a random guess and 1.0 is perfect
+#AUC can be thought of as a letter grade with A of 0.9
+# Create trainControl object: myControl
+
+myControl <- trainControl(
+  method = "cv",
+  number = 10,          #10-fold cross-validation 
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE, # IMPORTANT!
+  verboseIter = TRUE
+)
+
+# Train glm with custom trainControl: model
+model <- train(
+  Match_Status ~ ., 
+  data, 
+  method = "glm",
+  trControl = myControl, 
+  preProcess = c("medianImpute", "center", "scale")
+)
+
+# Print model to console
+model
+
+
+
+# Fit random forest: model
+model <- train(
+  Match_Status ~ .,
+  tuneLength = 3,
+  data = data, 
+  method = "ranger",
+  trControl = trainControl(
     method = "cv", 
-    number = 10,
-    summaryFunction = twoClassSummary,
-    classProbs = TRUE, # IMPORTANT!
+    number = 5, 
     verboseIter = TRUE
   )
+)
 
-  # Fit glmnet model: model
-  model <- train(
-    Match_Status ~ ., 
-    data,
-    method = "glmnet",
-    trControl = myControl
+# Print model to console
+model  
+plot(model)  
+
+# Define the tuning grid: tuneGrid
+tuneGrid <- data.frame(
+  .mtry = c(25, 13, 4, 5),
+  .splitrule = "variance",
+  .min.node.size = 5
+)    
+
+# Hand tune the model
+model <- train(
+  Match_Status ~ .,
+  tuneGrid = tuneGrid, 
+  data = data, 
+  method = "ranger",
+  trControl = trainControl(
+    method = "cv", 
+    number = 5, 
+    verboseIter = TRUE
   )
-  
-  # Print model to console
-  model
-  
-  # Print maximum ROC statistic
-  max(model[["Results"]][["ROC"]])  
-  
-  af <- randomForest(Match_Status~., data=train)
-af  
-plot(af) #Looking at confusion matrix the class.error shows that the model is not as good at predicting students who will not match.  
+)
+
+# Print model to console
+model  
+plot(model)   #output shows mtry=2
+
+
+##glmnet model can pick out predictors for you
+# Create custom trainControl: myControl
+# Fit glmnet model: model_glmnet
+myControl <- trainControl(
+  method = "cv", 
+  number = 10,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE, # IMPORTANT!
+  verboseIter = TRUE
+)
+
+# Fit glmnet model: model_glmnet
+model_glmnet <- train(
+  x = model_x, 
+  y = model_y,
+  metric = "ROC",
+  method = "glmnet",
+  trControl = myControl
+)
+# Print model to console
+model
+attributes(model)
+
+# Print maximum ROC statistic
+max(model[["results"]][["ROC"]])  
+
