@@ -3,11 +3,16 @@
 #https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
 #https://www.kaggle.com/sindhuee/r-caret-example
 
+
+#Pull clerkship grades by hand.  
+#Create column of CU students vs. universe
+#Create column of CU students who did not match vs. all students who did not match.  
+
 #Install and Load packages
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -23,12 +28,10 @@ setwd("~/Dropbox/Nomogram/nomogram")     #Set working directory
 #3)  Create nomogram
 
 ################################################################
-#Import Data
-data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_select_43.rds")) #40 has filled data so all fields are complete
+#Load Data
+data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_reorder_cols_54.rds")) #40 has filled data so all fields are complete
 #Carat gets confused by tibbles so convert to data.frame  
- colnames(data)
- str(data)
- data$Match_Status 
+
  
  ################################################################
  #Data cleaning, Place nicer labels for the data
@@ -60,7 +63,7 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ##plot relevant features for lots of variables
  colnames(data)
  features <-colnames(data)
- features_rel<-features [3:32]   
+ features_rel<-features [3:35]   
  
  for( i in features_rel ){
    
@@ -75,7 +78,7 @@ data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Reside
  ################################################################
  #### Building Table 1 ####
  #Bring in the full data set
-full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_fill_46.rds")) 
+full_data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_fill_48.rds")) 
  #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
 colnames(full_data)
 table1 <- tableby(Match_Status ~ 
@@ -102,9 +105,10 @@ table1 <- tableby(Match_Status ~
                     Count_of_Peer_Reviewed_Online_Publication + 
                     Misdemeanor_Conviction  + 
                     Expected_Visa_Status_Dichotomized + 
-                    Visa_Sponsorship_Needed, #+
-                    #Medical_Degree +
-                    #Medical_School_Country, 
+                    Visa_Sponsorship_Needed +
+                    OBGYN_Grade +
+                    Medical_Degree +
+                    Medical_School_Country, 
                   data=full_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("meansd", "median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
  
  #labels
@@ -147,11 +151,12 @@ table1 <- tableby(Match_Status ~
  t.test(data$Count_of_Oral_Presentation ~ data$Match_Status)  #NS
  t.test(data$Count_of_Peer_Reviewed_Book_Chapter ~ data$Match_Status) #NS
  t.test(data$Count_of_Peer_Reviewed_Online_Publication ~ data$Match_Status) #NS
+ chisq.test(data$Match_Status, data$OBGYN_Grade) #Failes because too many NS
  #######################################################################################
 
 #For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
 #mod_fit has all variables included
-  colnames(data)
+colnames(data)
  data$Match_Status <- as.factor(data$Match_Status)
  mod_fit <- glm(Match_Status ~ 
                   Age + 
@@ -172,7 +177,9 @@ table1 <- tableby(Match_Status ~
                   Visa_Sponsorship_Needed + 
                   Count_of_Non_Peer_Reviewed_Online_Publication + 
                   Medical_Education_or_Training_Interrupted + 
-                  Misdemeanor_Conviction, 
+                  Misdemeanor_Conviction,
+                  #Medical_Degree +
+                  #Medical_School_Country, 
                 data=data, family="binomial")
  print(mod_fit)
 
@@ -339,8 +346,8 @@ auc
   
   
   #######################################################################################
+  beepr::beep(sound = 4)
   DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
-  
   #If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
   
   #Hurts student if they do not get a grade at Stanford clerkship.  
@@ -399,7 +406,6 @@ auc
   
   
   ####Kaggle example
-  
   #Read in the data
   #data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_mutate_43.rds"))
   vis_miss(data, warn_large_data = FALSE)  #looks for missing data
@@ -442,3 +448,167 @@ auc
   ##results
   confusionMatrix(lreg_pred,data$Match_Status)
   confusionMatrix(dtree_pred,data$Match_Status)
+####
+
+  
+#######################################
+#Datacamp chapter
+  #https://campus.datacamp.com/courses/machine-learning-toolbox/classification-models-fitting-them-and-evaluating-their-performance?ex=2
+  model.binomial.significant <- rms::lrm(Match_Status ~ 
+                                           Age + #Univariate SS  #Wald Test p=0.40, fair
+                                           Gender + #Univariate SS  #Wald Test p=0.30, good
+                                           white_non_white + #Univariate SS,  # p=0.30
+                                           Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                                           USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                                           #Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35, #lrm p-value of 0.92
+                                           Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                                           Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                                           #Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20,          #lrm p-value of 0.21
+                                           Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
+                                         data = data, x=TRUE, y=TRUE)
+  print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
+###################################################################################
+  data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_select_58.rds"))
+  
+  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
+  dim(data)
+  data <- na.omit(data)  #removed any rows with NAs
+  dim(data)
+  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
+  
+  
+  # Get the number of observations
+  n_obs <- nrow(data)
+  
+  # Shuffle row indices: permuted_rows
+  permuted_rows <- sample(n_obs)
+  
+  # Randomly order data: Sonar
+  Sonar_shuffled <- data[permuted_rows, ]
+  
+  # Identify row to split on: split
+  split <- round(n_obs * 0.6)
+  
+  # Create train
+  train <- Sonar_shuffled[1:split, ]
+  
+  # Create test
+  test <- Sonar_shuffled[(split + 1):n_obs, ]
+
+  #Check to make sure all variables are int or Factors
+  str(data)
+  
+  # Fit glm model: model
+  model <- glm(Match_Status ~ .,
+               family = "binomial", train)
+  
+  # Predict on test: p
+  p <- predict(model, test, type = "response")
+  summary (p)
+  #Confusion matrix - This is where there is confusion in the model and it predicts one outcome rather than the other.  
+  # If p exceeds threshold of 0.5, M else R: m_or_r
+  match_or_no_match <- ifelse(p > 0.5, "No_Match", "Student_Matched")
+  
+  # Convert to factor: p_class
+  p_class <- factor(match_or_no_match, levels = levels(test[["Match_Status"]]))
+  
+  # Create confusion matrix
+  confusionMatrix(p_class, test[["Match_Status"]])  #Look at Accuracy statistic that is not very impressive at 0.31
+  
+  # Make ROC curve
+  colAUC(p, test[["Match_Status"]], plotROC = TRUE)  #Models that are 50% accurate follows the diagnal line
+  
+  #Area under the curve of 0.5 is a model with a random guess and 1.0 is perfect
+  #AUC can be thought of as a letter grade with A of 0.9
+  # Create trainControl object: myControl
+  
+  myControl <- trainControl(
+    method = "cv",
+    number = 10,          #10-fold cross-validation 
+    summaryFunction = twoClassSummary,
+    classProbs = TRUE, # IMPORTANT!
+    verboseIter = TRUE
+  )
+  
+  # Train glm with custom trainControl: model
+  model <- train(
+    Match_Status ~ ., 
+    data, 
+    method = "glm",
+    trControl = myControl
+  )
+  
+  # Print model to console
+  model
+
+  
+  
+  # Fit random forest: model
+  model <- train(
+    Match_Status ~ .,
+    tuneLength = 3,
+    data = data, 
+    method = "ranger",
+    trControl = trainControl(
+      method = "cv", 
+      number = 5, 
+      verboseIter = TRUE
+    )
+  )
+  
+  # Print model to console
+  model  
+  plot(model)  
+
+  # Define the tuning grid: tuneGrid
+  tuneGrid <- data.frame(
+    .mtry = c(25, 13, 4, 5),
+    .splitrule = "variance",
+    .min.node.size = 5
+  )    
+  
+  # Hand tune the model
+  model <- train(
+    Match_Status ~ .,
+    tuneGrid = tuneGrid, 
+    data = data, 
+    method = "ranger",
+    trControl = trainControl(
+      method = "cv", 
+      number = 5, 
+      verboseIter = TRUE
+    )
+  )
+  
+  # Print model to console
+  model  
+  plot(model)   #output shows mtry=2
+  
+  
+  ##glmnet model can pick out predictors for you
+  # Create custom trainControl: myControl
+  myControl <- trainControl(
+    method = "cv", 
+    number = 10,
+    summaryFunction = twoClassSummary,
+    classProbs = TRUE, # IMPORTANT!
+    verboseIter = TRUE
+  )
+
+  # Fit glmnet model: model
+  model <- train(
+    Match_Status ~ ., 
+    data,
+    method = "glmnet",
+    trControl = myControl
+  )
+  
+  # Print model to console
+  model
+  
+  # Print maximum ROC statistic
+  max(model[["Results"]][["ROC"]])  
+  
+  af <- randomForest(Match_Status~., data=train)
+af  
+plot(af) #Looking at confusion matrix the class.error shows that the model is not as good at predicting students who will not match.  
