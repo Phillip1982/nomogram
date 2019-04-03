@@ -2,6 +2,7 @@
 #https://www.r-bloggers.com/evaluating-logistic-regression-models/
 #https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
 #https://www.kaggle.com/sindhuee/r-caret-example
+#https://github.com/datasciencedojo/meetup/blob/master/intro_to_ml_with_r_and_caret/IntroToMachineLearning.R
 
 
 #Pull clerkship grades by hand.  
@@ -12,7 +13,7 @@
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -21,15 +22,14 @@ registerDoMC(cores = detectCores()-1)
 ##################################################################
 #### Set data file locations ####
 # Set path to data and filenames as "constants" and use CAPS to denote.
-setwd("~/Dropbox/Nomogram/nomogram")     #Set working directory
-
+setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
 #1)  Create Table 1 of matched vs. unmatched applicants
 #2)  Create logistic regression
 #3)  Create nomogram
 
 ################################################################
 #Load Data
-data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds")) #40 has filled data so all fields are complete
+data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds")) 
 #Carat gets confused by tibbles so convert to data.frame  
 
  
@@ -116,11 +116,11 @@ table1 <- tableby(Match_Status ~
  labels(table1)
  
  #show the table
- summary(table1, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
+ summary(table1, text=T, title='Table 1:  Demographics of CU Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
  
  #Adjust for Bonferroni for multiple p-values
  padjust(table1, method = "bonferroni")
- summary(table1, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
+ summary(table1, text=T, title='Table 1:  Demographics of CU Applicants to Obstetrics and Gynecology in 2019', pfootnote=TRUE)
  
  #Write to HTML
  arsenal::write2html(table1, ("~/Dropbox/Nomogram/nomogram/results/table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")
@@ -152,38 +152,19 @@ table1 <- tableby(Match_Status ~
  t.test(data$Count_of_Oral_Presentation ~ data$Match_Status)  #NS
  t.test(data$Count_of_Peer_Reviewed_Book_Chapter ~ data$Match_Status) #NS
  t.test(data$Count_of_Peer_Reviewed_Online_Publication ~ data$Match_Status) #NS
- chisq.test(data$Match_Status, data$OBGYN_Grade) #Failes because too many NS
+ chisq.test(data$Match_Status, data$OBGYN_Grade) #Failes because too many NA
  #######################################################################################
 
 #For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
 #mod_fit has all variables included
 colnames(data)
  data$Match_Status <- as.factor(data$Match_Status)
- mod_fit <- glm(Match_Status ~ 
-                  Age + 
-                  white_non_white + 
-                  Gender + 
-                  Couples_Match + 
-                  Expected_Visa_Status_Dichotomized +
-                  US_or_Canadian_Applicant + 
-                  #Medical_School_Type + 
-                  Alpha_Omega_Alpha + 
-                  Gold_Humanism_Honor_Society + 
-                  USMLE_Step_1_Score +  
-                  Military_Service_Obligation + 
-                  Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                  Count_of_Peer_Reviewed_Book_Chapter + 
-                  Count_of_Poster_Presentation + 
-                  Other_Service_Obligation + 
-                  Visa_Sponsorship_Needed + 
-                  Count_of_Non_Peer_Reviewed_Online_Publication + 
-                  Medical_Education_or_Training_Interrupted + 
-                  Misdemeanor_Conviction,
-                  #Medical_Degree +
-                  #Medical_School_Country, 
+ mod_fit <- glm(Match_Status ~ ., 
                 data=data, family="binomial")
  print(mod_fit)
 
+ 
+ ##Feature Selection##
  #mod_fit_two has only the univariate statistically significant values 
 mod_fit_two <- glm(Match_Status ~ 
                    Age +  #Univariate SS
@@ -210,7 +191,7 @@ pR2(mod_fit_two)
 
 ####Wald Test - Individual Variable Importance
 #  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
-library(survey)
+
 #Keep p<0.3
 regTermTest(mod_fit_two, "Age") #Wald Test p=0.30, good
 regTermTest(mod_fit_two, "Gender") #Wald Test p=0.30, good
@@ -253,7 +234,7 @@ mod_fit_three <- glm(Match_Status ~
                        Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
                    data=data, family="binomial")
 print(mod_fit_three)
-plot(mod_fit_three)
+#plot(mod_fit_three)
  
 ###### Now that we have picked the variables and the best model.  
 colnames(data)
@@ -289,6 +270,7 @@ prob <- predict(mod_fit_three, newdata=data, type="response")
 pred <- prediction(prob, data$Match_Status)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 plot(perf)
+jpeg('area_under_the_curve.jpeg')
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
 auc  #81% AUC
@@ -320,7 +302,6 @@ auc  #81% AUC
   print(nomo_from_model.binomial.significant)
   #legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
   
-  
   #######################################################################################
   beepr::beep(sound = 4)
   DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
@@ -332,55 +313,7 @@ auc  #81% AUC
   
   #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
   
-  
-  #######################################################################################
-  ####  Model Calibration
-  #resampling internal validation
-  rms::validate(model.binomial.significant, method = "boot", B=300, estimates = T, type="residual")
-  rms::validate(model.binomial.significant, method = "boot", B=300, group = y)  #NOT WORKING
-  
-  #cal <- calibrate(model.binomial.significant, kint=2, predy=seq(.2, .8, length=60), group=y)
-  # group= does k-sample validation: make resamples have same 
-  # numbers of subjects in each level of y as original sample
-  
-  caret::calibration(Match_Status_Dichot ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data = data)
-  
-  #https://campus.datacamp.com/courses/machine-learning-toolbox/regression-models-fitting-them-and-evaluating-their-performance?ex=3
-  # Fit lm model: model
-  model <- rms::lrm(Match_Status ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data = data, x=TRUE, y=TRUE)
-  model
-  # Predict on full data: p
-  p <- predict(model, data)
-  p
-  
-  #Next, you use the sample() function to shuffle the row indices of the diamonds dataset. You can later use these indices to reorder the dataset.
-  # Set seed
-  set.seed(123456)
-  
-  # Shuffle row indices: rows
-  rows <- sample(nrow(data))
-  
-  # Randomly order data
-  shuffled_data <- data[rows, ]
-  
-  ###Now that your dataset is randomly ordered, you can split the first 80% of it into a training set, and the last 20% into a test set. You can do this by choosing a split point approximately 80% of the way through your data
-  # Determine row to split on: split
-  split <- round(nrow(data) * 0.80)
-  
-  # Create train
-  train <- data[1:split, ]
-  
-  # Create test
-  test <- data[(split + 1):nrow(data), ]
-  
-  ###Now that you have a randomly split training set and test set, you can use the lm() function as you did in the first exercise to fit a model to your training set, rather than the entire dataset.
-  # Fit lm model on train: model
-  model <- rms::lrm(Match_Status ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation, data = train, x=TRUE, y=TRUE)
-  
-  # Predict on test: p
-  p <- predict(model, test)
-  
-  
+ 
   ####Kaggle example
   #Read in the data
   #data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_mutate_43.rds"))
@@ -482,6 +415,7 @@ plot(rf) #Looking at confusion matrix the class.error shows that the model is no
 
 
 ###################################################################################
+### TEST PLAYGROUND
 data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds"))
 
 vis_miss(data, warn_large_data = FALSE)  #looks for missing data
@@ -628,3 +562,176 @@ attributes(model)
 # Print maximum ROC statistic
 max(model[["results"]][["ROC"]])  
 
+
+
+####################################################################################
+train <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
+
+#======================================================================================
+  #
+  # File:        IntroToMachineLearning.R
+  # Author:      Dave Langer
+  # Description: This code illustrates the usage of the caret package for the An 
+  #              Introduction to Machine Learning with R and Caret" Meetup dated 
+  #              06/07/2017. More details on the Meetup are available at:
+  #
+  #                 https://www.meetup.com/data-science-dojo/events/239730653/
+  #
+  # NOTE - This file is provided "As-Is" and no warranty regardings its contents are
+  #        offered nor implied. USE AT YOUR OWN RISK!
+#
+#=======================================================================================
+
+#install.packages(c("e1071", "caret", "doSNOW", "ipred", "xgboost"))
+library(caret)
+library(doSNOW)
+
+
+
+#=================================================================
+# Data Wrangling
+#=================================================================
+str(train)
+
+#Data cleaning, Place nicer labels for the data
+#label(data$Self_Identify)    <- 'Race/Ethnicity'
+label(train$Age)    <- 'Age'
+label(train$AOA) <- 'AOA_Member'
+label(train$USMLE_Step_1_Score) <- 'USMLE_Step_1_Score'
+label(train$Gender) <- 'Gender'
+label(train$Couples_Match) <- 'Couples_Matching'
+#label(train$Expected_Visa_Status_Dichotomized) <- 'Expected_Visa_Status'
+#label(train$Medical_School_Type) <- 'Medical_School_Type'
+label(train$Medical_Education_or_Training_Interrupted) <- 'Medical_School_Interrupted'
+label(train$Misdemeanor_Conviction) <- 'Misdemeanor_Conviction'
+#label(data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
+#label(data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
+#label(data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
+label(train$US_or_Canadian_Applicant) <- 'US_or_Canadian_Applicant'
+label(train$Gold_Humanism_Honor_Society) <- 'Gold_Humanism_Honors_Society'
+label(train$Military_Service_Obligation) <- 'Military_Service_Obligation'
+label(train$Count_of_Oral_Presentation) <- 'Count_of_Oral_Presentations'
+label(train$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count_of_Peer_Reviewed_Book_Chapters'
+label(train$Count_of_Poster_Presentation) <- 'Count_of_Poster_Presentations'
+label(train$Other_Service_Obligation) <- 'Other_Service_Obligation'
+#label(data$Med_school_condensed) <- 'Medical School Condensed' 
+label(train$white_non_white) <- 'Race' 
+label(train$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count_of_Peer_Reviewed_Journal_Articles'
+label(train$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published'
+label(train) #Check labels for the data set
+
+
+
+#=================================================================
+# Impute Missing Ages
+#=================================================================
+
+# Caret supports a number of mechanism for imputing (i.e., 
+# predicting) missing values. Leverage bagged decision trees
+# to impute missing values for the Age feature.
+
+# First, transform all feature to dummy variables.
+dummy.vars <- dummyVars(~ ., data = train[, -1])
+train.dummy <- predict(dummy.vars, train[, -1])  #Had to remove spaces from all variables and values
+View(train.dummy)
+
+# Now, impute!
+pre.process <- caret::preProcess(train.dummy, method = "bagImpute")
+imputed.data <- predict(pre.process, train.dummy)
+View(imputed.data)
+
+train$Age <- imputed.data[, 2]
+View(train)
+
+
+
+#=================================================================
+# Split Data
+#=================================================================
+
+# Use caret to create a 70/30% split of the training data,
+# keeping the proportions of the Survived class label the
+# same across splits.
+set.seed(123456)
+indexes <- createDataPartition(train$Match_Status,
+                               times = 1,
+                               p = 0.7,
+                               list = FALSE)
+match.train <- train[indexes,]
+match.test <- train[-indexes,]
+
+
+# Examine the proportions of the Survived class lable across
+# the datasets.
+prop.table(table(train$Match_Status))
+prop.table(table(match.train$Match_Status))
+prop.table(table(match.test$Match_Status))
+
+
+
+
+#=================================================================
+# Train Model
+#=================================================================
+
+# Set up caret to perform 10-fold cross validation repeated 3 
+# times and to use a grid search for optimal model hyperparamter
+# values.
+train.control <- trainControl(method = "repeatedcv",
+                              number = 10,
+                              repeats = 3,
+                              search = "grid")
+
+
+# Leverage a grid search of hyperparameters for xgboost. See 
+# the following presentation for more information:
+# https://www.slideshare.net/odsc/owen-zhangopen-sourcetoolsanddscompetitions1
+tune.grid <- expand.grid(eta = c(0.05, 0.075, 0.1),
+                         nrounds = c(50, 75, 100),
+                         max_depth = 6:8,
+                         min_child_weight = c(2.0, 2.25, 2.5),
+                         colsample_bytree = c(0.3, 0.4, 0.5),
+                         gamma = 0,
+                         subsample = 1)
+View(tune.grid)
+
+
+# Use the doSNOW package to enable caret to train in parallel.
+# While there are many package options in this space, doSNOW
+# has the advantage of working on both Windows and Mac OS X.
+#
+# Create a socket cluster using 10 processes. 
+#
+# NOTE - Tune this number based on the number of cores/threads 
+# available on your machine!!!
+#
+#cl <- makeCluster(1, type = "SOCK")
+
+# Register cluster so that caret will know to train in parallel.
+#registerDoSNOW(cl)
+
+#train <- complete.cases(train)
+# Train the xgboost model using 10-fold CV repeated 3 times 
+# and a hyperparameter grid search to train the optimal model.
+caret.cv <- train(Match_Status ~ ., 
+                  data = match.train,
+                  method = "xgbTree",
+                  tuneGrid = tune.grid,
+                  trControl = train.control, 
+                  na.action = na.exclude)
+#stopCluster(cl)
+
+
+# Examine caret's processing results
+caret.cv  #he final values used for the model were nrounds = 50, max_depth = 8, eta = 0.1, gamma = 0, colsample_bytree= 0.3, min_child_weight = 2.5 and subsample = 1.
+beepr::beep(sound = 4)
+
+# Make predictions on the test set using a xgboost model 
+# trained on all 625 rows of the training set using the 
+# found optimal hyperparameter values.
+preds <- predict(caret.cv, match.test)
+
+
+# Use caret's confusionMatrix() function to estimate the 
+# effectiveness of this model on unseen, new data.
+confusionMatrix(preds, match.test$Match_Status)
