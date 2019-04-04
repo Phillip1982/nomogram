@@ -13,11 +13,12 @@
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
 registerDoMC(cores = detectCores()-1)
+dev.off()
 
 ##################################################################
 #### Set data file locations ####
@@ -312,52 +313,6 @@ auc  #81% AUC
   #Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
   
   #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
-  
- 
-  ####Kaggle example
-  #Read in the data
-  #data <- as.data.frame(read_rds("~/Dropbox/Nomogram/nomogram/data/CU_Obgyn_Residency_Applicants_mutate_43.rds"))
-  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-  dim(data)
-  data <- na.omit(data)  #removed any rows with NAs
-  dim(data)
-  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-  
-  #Creating training and test data 70-30 split
-  set.seed(123456)
-  trainIndex <- createDataPartition(data$Match_Status_Dichot, p = .7, 
-                                    list = FALSE, 
-                                    times = 1)
-  dtrain<-data[trainIndex,]
-  dtest<-data[-trainIndex,]
-  
-  #Modeling: Logistic regression and decision trees with 10 fold cross validation
-  fitControl <- trainControl(## 10-fold CV
-    method = "cv",
-    number = 10,
-    savePredictions = TRUE
-  )
-  
-  ## Logistic regression
-  lreg<-caret::train(Match_Status ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation,data=dtrain,method="glm",family=binomial(), trControl=fitControl)
-  
-  ## decision tree 
-  dtree<-caret::train(Match_Status ~ white_non_white + Couples_Match + Alpha_Omega_Alpha + USMLE_Step_1_Score + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Count_of_Poster_Presentation,data=dtrain,method="ctree", trControl=fitControl)
-  lreg
-  dtree
-  
-  #feature importance
-  varImp(lreg)
-  varImp(dtree)
-  
-  ### predict on test dataset
-  lreg_pred<-predict(lreg,dtest)
-  dtree_pred<-predict(dtree,dtest)
-  
-  ##results
-  confusionMatrix(lreg_pred,data$Match_Status)
-  confusionMatrix(dtree_pred,data$Match_Status)
-####
 
   
 #######################################
@@ -405,7 +360,7 @@ auc  #81% AUC
   
   ################################################################################
   # Random Forest in R YouTube video by Bharatendra Rai
-  rf <- randomForest(Match_Status ~ Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation, data=train)
+  rf <- randomForest(Match_Status ~ Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation, data=train, na.exclude = na.omit)
 rf  
 attributes(rf)
 af$confusion
@@ -565,7 +520,14 @@ max(model[["results"]][["ROC"]])
 
 
 ####################################################################################
-train <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
+data1 <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
+
+AppliedPredictiveModeling::transparentTheme(trans = .4)
+caret::featurePlot(x = data1 [, 2:3], 
+            y = data1$Match_Status, 
+            plot = "pairs",
+            ## Add a key at the top
+            auto.key = list(columns = 3))
 
 #======================================================================================
   #
@@ -576,51 +538,17 @@ train <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
   #              06/07/2017. More details on the Meetup are available at:
   #
   #                 https://www.meetup.com/data-science-dojo/events/239730653/
-  #
-  # NOTE - This file is provided "As-Is" and no warranty regardings its contents are
-  #        offered nor implied. USE AT YOUR OWN RISK!
-#
 #=======================================================================================
-
-#install.packages(c("e1071", "caret", "doSNOW", "ipred", "xgboost"))
-library(caret)
-library(doSNOW)
-
-
 
 #=================================================================
 # Data Wrangling
 #=================================================================
-str(train)
+str(data1)
 
-#Data cleaning, Place nicer labels for the data
-#label(data$Self_Identify)    <- 'Race/Ethnicity'
-label(train$Age)    <- 'Age'
-label(train$AOA) <- 'AOA_Member'
-label(train$USMLE_Step_1_Score) <- 'USMLE_Step_1_Score'
-label(train$Gender) <- 'Gender'
-label(train$Couples_Match) <- 'Couples_Matching'
-#label(train$Expected_Visa_Status_Dichotomized) <- 'Expected_Visa_Status'
-#label(train$Medical_School_Type) <- 'Medical_School_Type'
-label(train$Medical_Education_or_Training_Interrupted) <- 'Medical_School_Interrupted'
-label(train$Misdemeanor_Conviction) <- 'Misdemeanor_Conviction'
-#label(data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
-#label(data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
-#label(data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
-label(train$US_or_Canadian_Applicant) <- 'US_or_Canadian_Applicant'
-label(train$Gold_Humanism_Honor_Society) <- 'Gold_Humanism_Honors_Society'
-label(train$Military_Service_Obligation) <- 'Military_Service_Obligation'
-label(train$Count_of_Oral_Presentation) <- 'Count_of_Oral_Presentations'
-label(train$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count_of_Peer_Reviewed_Book_Chapters'
-label(train$Count_of_Poster_Presentation) <- 'Count_of_Poster_Presentations'
-label(train$Other_Service_Obligation) <- 'Other_Service_Obligation'
-#label(data$Med_school_condensed) <- 'Medical School Condensed' 
-label(train$white_non_white) <- 'Race' 
-label(train$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count_of_Peer_Reviewed_Journal_Articles'
-label(train$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published'
-label(train) #Check labels for the data set
-
-
+#=================================================================
+# Check for NAs in data
+#=================================================================
+sum(is.na(data1))
 
 #=================================================================
 # Impute Missing Ages
@@ -631,44 +559,71 @@ label(train) #Check labels for the data set
 # to impute missing values for the Age feature.
 
 # First, transform all feature to dummy variables.
-dummy.vars <- dummyVars(~ ., data = train[, -1])
-train.dummy <- predict(dummy.vars, train[, -1])  #Had to remove spaces from all variables and values
-View(train.dummy)
+dummy.vars <- caret::dummyVars(~ ., data = data1[, -1])
+data1.dummy <- predict(dummy.vars, data1[, -1])  #Had to remove spaces from all variables and values
+#View(data1.dummy)
 
 # Now, impute!
-pre.process <- caret::preProcess(train.dummy, method = "bagImpute")
-imputed.data <- predict(pre.process, train.dummy)
-View(imputed.data)
-
-train$Age <- imputed.data[, 2]
-View(train)
-
-
+pre.process <- caret::preProcess(data1.dummy, method = "bagImpute")
+imputed.data <- predict(pre.process, data1.dummy)
+sum(is.na(imputed.data))
+#View(imputed.data)
 
 #=================================================================
-# Split Data
+# Factor Selection
+#=================================================================
+#https://www.analyticsvidhya.com/blog/2016/12/introduction-to-feature-selection-methods-with-an-example-or-how-to-select-the-right-variables/
+dim(data1)
+data1$Match_Status <- as.factor(data1$Match_Status) #specifying outcome variable as factor
+indexes <- caret::createDataPartition(y = data1$Match_Status,  #Divide the data into train and test sets
+                               times = 1,
+                               p = 0.7,
+                               list = FALSE)
+#Split the data so that we cna run a rf model and find best factors.  
+train <- data1[indexes,]
+nrow(train)
+test <- data1[-indexes,]
+nrow(test)
+
+model_rf<-randomForest::randomForest(Match_Status ~ ., data = train, na.action = na.omit)
+preds<-predict(model_rf,test[,-1])  #-1 is to avoid messing with the outcome variable
+table(preds)
+
+auc(preds,test$Match_Status)  ##checking accuracy
+randomForest::importance(model_rf)  #look at the feature importance
+
+model_rf<-randomForest::randomForest(Match_Status ~ USMLE_Step_1_Score+Age+US_or_Canadian_Applicant+Gold_Humanism_Honor_Society+Count_of_Oral_Presentation  
+                       #Applying Random forest for most important 10 features only
+                       
+                       +Count_of_Peer_Reviewed_Journal_Articles_Abstracts+Count_of_Poster_Presentation+white_non_white+Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published+AOA,
+                       
+                       data = train, na.action = na.omit)
+preds<-predict(model_rf,test[,-1])
+table(preds)
+auc(preds,test$Match_Status)  #See how the AUC improves with only 10 variables.  
+
+#=================================================================
+# Split Full Data Set for Creating Model
 #=================================================================
 
 # Use caret to create a 70/30% split of the training data,
 # keeping the proportions of the Survived class label the
 # same across splits.
 set.seed(123456)
-indexes <- createDataPartition(train$Match_Status,
+indexes <- caret::createDataPartition(train$Match_Status,
                                times = 1,
                                p = 0.7,
                                list = FALSE)
 match.train <- train[indexes,]
+nrow(match.train)
 match.test <- train[-indexes,]
-
+nrow(match.test)
 
 # Examine the proportions of the Survived class lable across
 # the datasets.
-prop.table(table(train$Match_Status))
-prop.table(table(match.train$Match_Status))
-prop.table(table(match.test$Match_Status))
-
-
-
+prop.table(table(data1$Match_Status))       #Original data set proportion 
+prop.table(table(match.train$Match_Status)) #Train data set proportion
+prop.table(table(match.test$Match_Status))  #Test data set proportion
 
 #=================================================================
 # Train Model
@@ -677,10 +632,13 @@ prop.table(table(match.test$Match_Status))
 # Set up caret to perform 10-fold cross validation repeated 3 
 # times and to use a grid search for optimal model hyperparamter
 # values.
-train.control <- trainControl(method = "repeatedcv",
+train.control <- caret::trainControl(method = "repeatedcv",
                               number = 10,
                               repeats = 3,
-                              search = "grid")
+                              search = "grid",
+                              classProbs = FALSE,   #Set to false to avoid class level names not valid error
+                              summaryFunction = defaultSummary,
+                              selectionFunction = "best")
 
 
 # Leverage a grid search of hyperparameters for xgboost. See 
@@ -693,7 +651,7 @@ tune.grid <- expand.grid(eta = c(0.05, 0.075, 0.1),
                          colsample_bytree = c(0.3, 0.4, 0.5),
                          gamma = 0,
                          subsample = 1)
-View(tune.grid)
+#View(tune.grid)
 
 
 # Use the doSNOW package to enable caret to train in parallel.
@@ -710,24 +668,24 @@ View(tune.grid)
 # Register cluster so that caret will know to train in parallel.
 #registerDoSNOW(cl)
 
-#train <- complete.cases(train)
 # Train the xgboost model using 10-fold CV repeated 3 times 
 # and a hyperparameter grid search to train the optimal model.
+
 caret.cv <- train(Match_Status ~ ., 
                   data = match.train,
                   method = "xgbTree",
                   tuneGrid = tune.grid,
                   trControl = train.control, 
                   na.action = na.exclude)
-#stopCluster(cl)
-
 
 # Examine caret's processing results
 caret.cv  #he final values used for the model were nrounds = 50, max_depth = 8, eta = 0.1, gamma = 0, colsample_bytree= 0.3, min_child_weight = 2.5 and subsample = 1.
+dev.off()
+plot(caret.cv)
 beepr::beep(sound = 4)
 
 # Make predictions on the test set using a xgboost model 
-# trained on all 625 rows of the training set using the 
+# trained on the training set using the 
 # found optimal hyperparameter values.
 preds <- predict(caret.cv, match.test)
 
