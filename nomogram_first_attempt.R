@@ -13,7 +13,7 @@
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -281,6 +281,8 @@ auc  #81% AUC
   ##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
   #fun.at - Demarcations on the function axis: "Matching into obgyn"
   #lp=FALSE so we don't have the logistic progression
+
+is.na(nomo_from_model.binomial.significant)
   
   nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant, 
                           #lp.at = seq(-3,4,by=0.5),
@@ -292,6 +294,7 @@ auc  #81% AUC
                           abbrev = F,
                           minlength = 9)
   
+  dev.off()  #Run this until null device = 1
   nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
        cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
        #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
@@ -522,12 +525,29 @@ max(model[["results"]][["ROC"]])
 ####################################################################################
 data1 <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
 
+data1$Match_Status <- as.factor(data1$Match_Status)
+sum(is.na(data1))
+data1 <- na.omit(data1)
+sum(is.na(data1))
+
+#=================================================================
+# Data Visualization
+#=================================================================
 AppliedPredictiveModeling::transparentTheme(trans = .4)
-caret::featurePlot(x = data1 [, 2:3], 
-            y = data1$Match_Status, 
+caret::featurePlot(x = data1 [,2:5], 
+            scales=list(x=list(relation="free"), y=list(relation="free")), 
+            y = data1[,1], 
             plot = "pairs",
             ## Add a key at the top
             auto.key = list(columns = 3))
+
+dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
+#ggpairs(data1, aes(colour = Match_Status, alpha = 0.4),
+ #       progress=TRUE)  #Picks the correct plot for numeric vs. categorical
+devtools::install_github("mtennekes/tabplot")
+library(tabplot)
+itablePrepare(data1)
+itableplot()
 
 #======================================================================================
   #
