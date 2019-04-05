@@ -3,6 +3,7 @@
 #https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
 #https://www.kaggle.com/sindhuee/r-caret-example
 #https://github.com/datasciencedojo/meetup/blob/master/intro_to_ml_with_r_and_caret/IntroToMachineLearning.R
+#https://www.machinelearningplus.com/machine-learning/caret-package/
 
 
 #Pull clerkship grades by hand.  
@@ -27,6 +28,8 @@ setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
 #1)  Create Table 1 of matched vs. unmatched applicants
 #2)  Create logistic regression
 #3)  Create nomogram
+
+
 
 ################################################################
 #Load Data
@@ -215,7 +218,8 @@ regTermTest(mod_fit_two, "Other_Service_Obligation") #Wald Test Drop
 regTermTest(mod_fit_two, "Visa_Sponsorship_Needed") #Wald Test p=0.20
 
 #To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
-caret::varImp(mod_fit_two)
+varImp_mod_fit_two <- caret::varImp(mod_fit_two)
+plot(varImp_mod_fit_two, main="Variable Importance")
  
 mod_fit_three <- glm(Match_Status ~ 
                      Age + #Univariate SS  #Wald Test p=0.40, fair
@@ -281,8 +285,6 @@ auc  #81% AUC
   ##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
   #fun.at - Demarcations on the function axis: "Matching into obgyn"
   #lp=FALSE so we don't have the logistic progression
-
-is.na(nomo_from_model.binomial.significant)
   
   nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant, 
                           #lp.at = seq(-3,4,by=0.5),
@@ -318,49 +320,6 @@ is.na(nomo_from_model.binomial.significant)
   #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
 
   
-#######################################
-#Datacamp chapter
-  #https://campus.datacamp.com/courses/machine-learning-toolbox/classification-models-fitting-them-and-evaluating-their-performance?ex=2
-  model.binomial.significant <- rms::lrm(Match_Status ~ 
-                                           Age + #Univariate SS  #Wald Test p=0.40, fair
-                                           Gender + #Univariate SS  #Wald Test p=0.30, good
-                                           white_non_white + #Univariate SS,  # p=0.30
-                                           Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
-                                           USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
-                                           #Expected_Visa_Status_Dichotomized + #Univariate SS, #Wald Testp=0.35, #lrm p-value of 0.92
-                                           Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
-                                           Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
-                                           #Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20,          #lrm p-value of 0.21
-                                           Count_of_Poster_Presentation,#Univariate SS, #Wald Test  KEEP!
-                                         data = data, x=TRUE, y=TRUE)
-  print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-
-  ################################################################################
-  data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_58.rds"))
-  
-  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-  dim(data)
-  data <- na.omit(data)  #removed any rows with NAs
-  dim(data)
-  vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-  str(data)
-  
-  test_model <- glm(Match_Status~., family = "binomial", data=train)  
-  summary(test_model)
-  require(pROC)
-  pred <- predict(test_model, type='response')
-  tmp <- pROC::roc(data$Match_Status[!is.na(data$Match_Status)]~ pred, plot=TRUE, percent=TRUE)
-  
-  smaller_model <- glm(formula = Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, family = "binomial", data=train)  
-  summary(smaller_model)
-  
-  a <- arsenal::modelsum(Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, data=train, family = "binomial")
-  summary(a, text=T, show.intercept = F)
-  
-  fitall <- modelsum(Match_Status ~  Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation + Age + Gender + Expected_Visa_Status_Dichotomized + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + white_non_white + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, data=data, family=binomial, binomial.stats=c("Nmiss2","OR","p.value"))
-  summary(fitall)
-  
-  
   ################################################################################
   # Random Forest in R YouTube video by Bharatendra Rai
   rf <- randomForest(Match_Status ~ Couples_Match + USMLE_Step_1_Score + Gold_Humanism_Honor_Society + Visa_Sponsorship_Needed + Count_of_Poster_Presentation, data=train, na.exclude = na.omit)
@@ -371,193 +330,18 @@ plot(rf) #Looking at confusion matrix the class.error shows that the model is no
 
 
 
-
 ###################################################################################
-### TEST PLAYGROUND
-data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_select_59.rds"))
-
-vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-dim(data)
-data <- na.omit(data)  #removed any rows with NAs
-dim(data)
-vis_miss(data, warn_large_data = FALSE)  #looks for missing data
-str(data)
-
-# Get the number of observations
-n_obs <- nrow(data)
-n_obs
-
-# Shuffle row indices: permuted_rows
-permuted_rows <- sample(n_obs)
-permuted_rows
-# Randomly order data: Sonar
-Sonar_shuffled <- data[permuted_rows, ]
-
-# Identify row to split on: split
-split <- round(n_obs * 0.6)
-
-# Create train
-train <- Sonar_shuffled[1:split, ]
-
-# Create test
-test <- Sonar_shuffled[(split + 1):n_obs, ]
-
-#Check to make sure all variables are int or Factors
-str(data)
-
-# Fit glm model: model
-model <- glm(Match_Status ~ .,
-             family = "binomial", train)
-summary(model)
-
-# Predict on test: p
-p <- predict(model, test, type = "response")
-summary (p)
-#Confusion matrix - This is where there is confusion in the model and it predicts one outcome rather than the other.  
-# If p exceeds threshold of 0.5, M else R: m_or_r
-match_or_no_match <- ifelse(p > 0.5, "No_Match", "Student_Matched")
-
-# Convert to factor: p_class
-p_class <- factor(match_or_no_match, levels = levels(test[["Match_Status"]]))
-
-# Create confusion matrix
-confusionMatrix(p_class, test[["Match_Status"]])  #Look at Accuracy statistic that is not very impressive at 0.31
-
-# Make ROC curve
-colAUC(p, test[["Match_Status"]], plotROC = TRUE)  #Models that are 50% accurate follows the diagnal line
-
-#Area under the curve of 0.5 is a model with a random guess and 1.0 is perfect
-#AUC can be thought of as a letter grade with A of 0.9
-# Create trainControl object: myControl
-
-myControl <- trainControl(
-  method = "cv",
-  number = 10,          #10-fold cross-validation 
-  summaryFunction = twoClassSummary,
-  classProbs = TRUE, # IMPORTANT!
-  verboseIter = TRUE
-)
-
-# Train glm with custom trainControl: model
-model <- train(
-  Match_Status ~ ., 
-  data, 
-  method = "glm",
-  trControl = myControl, 
-  preProcess = c("medianImpute", "center", "scale")
-)
-
-# Print model to console
-model
-
-
-
-# Fit random forest: model
-model <- train(
-  Match_Status ~ .,
-  tuneLength = 3,
-  data = data, 
-  method = "ranger",
-  trControl = trainControl(
-    method = "cv", 
-    number = 5, 
-    verboseIter = TRUE
-  )
-)
-
-# Print model to console
-model  
-plot(model)  
-
-# Define the tuning grid: tuneGrid
-tuneGrid <- data.frame(
-  .mtry = c(25, 13, 4, 5),
-  .splitrule = "variance",
-  .min.node.size = 5
-)    
-
-# Hand tune the model
-model <- train(
-  Match_Status ~ .,
-  tuneGrid = tuneGrid, 
-  data = data, 
-  method = "ranger",
-  trControl = trainControl(
-    method = "cv", 
-    number = 5, 
-    verboseIter = TRUE
-  )
-)
-
-# Print model to console
-model  
-plot(model)   #output shows mtry=2
-
-
-##glmnet model can pick out predictors for you
-# Create custom trainControl: myControl
-# Fit glmnet model: model_glmnet
-myControl <- trainControl(
-  method = "cv", 
-  number = 10,
-  summaryFunction = twoClassSummary,
-  classProbs = TRUE, # IMPORTANT!
-  verboseIter = TRUE
-)
-
-# Fit glmnet model: model_glmnet
-model_glmnet <- train(
-  x = model_x, 
-  y = model_y,
-  metric = "ROC",
-  method = "glmnet",
-  trControl = myControl
-)
-# Print model to console
-model
-attributes(model)
-
-# Print maximum ROC statistic
-max(model[["results"]][["ROC"]])  
-
-
-
+# Model Calibration
 ####################################################################################
-data1 <- as.data.frame(read_rds("data/test_mess_mutate_62.rds"))
+data1 <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_mutate_60.rds"))
 
 data1$Match_Status <- as.factor(data1$Match_Status)
 sum(is.na(data1))
 data1 <- na.omit(data1)
 sum(is.na(data1))
 
-#=================================================================
-# Data Visualization
-#=================================================================
-AppliedPredictiveModeling::transparentTheme(trans = .4)
-caret::featurePlot(x = data1 [,2:5], 
-            scales=list(x=list(relation="free"), y=list(relation="free")), 
-            y = data1[,1], 
-            plot = "pairs",
-            ## Add a key at the top
-            auto.key = list(columns = 3))
-
-dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
-#ggpairs(data1, aes(colour = Match_Status, alpha = 0.4),
- #       progress=TRUE)  #Picks the correct plot for numeric vs. categorical
-devtools::install_github("mtennekes/tabplot")
-library(tabplot)
-itablePrepare(data1)
-itableplot()
-
 #======================================================================================
-  #
-  # File:        IntroToMachineLearning.R
-  # Author:      Dave Langer
-  # Description: This code illustrates the usage of the caret package for the An 
-  #              Introduction to Machine Learning with R and Caret" Meetup dated 
-  #              06/07/2017. More details on the Meetup are available at:
-  #
-  #                 https://www.meetup.com/data-science-dojo/events/239730653/
+#https://www.meetup.com/data-science-dojo/events/239730653/
 #=======================================================================================
 
 #=================================================================
@@ -566,45 +350,31 @@ itableplot()
 str(data1)
 
 #=================================================================
-# Check for NAs in data
-#=================================================================
-sum(is.na(data1))
-
-#=================================================================
-# Impute Missing Ages
-#=================================================================
-
-# Caret supports a number of mechanism for imputing (i.e., 
-# predicting) missing values. Leverage bagged decision trees
-# to impute missing values for the Age feature.
-
-# First, transform all feature to dummy variables.
-dummy.vars <- caret::dummyVars(~ ., data = data1[, -1])
-data1.dummy <- predict(dummy.vars, data1[, -1])  #Had to remove spaces from all variables and values
-#View(data1.dummy)
-
-# Now, impute!
-pre.process <- caret::preProcess(data1.dummy, method = "bagImpute")
-imputed.data <- predict(pre.process, data1.dummy)
-sum(is.na(imputed.data))
-#View(imputed.data)
-
-#=================================================================
-# Factor Selection
+# Data Preparation and Preprocessing for Factor Selection
 #=================================================================
 #https://www.analyticsvidhya.com/blog/2016/12/introduction-to-feature-selection-methods-with-an-example-or-how-to-select-the-right-variables/
 dim(data1)
 data1$Match_Status <- as.factor(data1$Match_Status) #specifying outcome variable as factor
 indexes <- caret::createDataPartition(y = data1$Match_Status,  #Divide the data into train and test sets
-                               times = 1,
-                               p = 0.7,
-                               list = FALSE)
-#Split the data so that we cna run a rf model and find best factors.  
+                                      times = 1,
+                                      p = 0.7,
+                                      list = FALSE)
+#Split the data so that we cna run a model and find best factors.  
 train <- data1[indexes,]
 nrow(train)
 test <- data1[-indexes,]
 nrow(test)
 
+#Use principal components analysis to pick what predictors to use in the model.  
+#http://www.rebeccabarter.com/blog/2017-11-17-caret_tutorial/
+train_pca <- preProcess(select(data, - Match_Status), 
+                                 method = c("center", "scale", "nzv", "pca"))
+train_pca
+train_pca$method
+train_pca$rotation
+
+
+#Use randomForest to determine AUC of different models 
 model_rf<-randomForest::randomForest(Match_Status ~ ., data = train, na.action = na.omit)
 preds<-predict(model_rf,test[,-1])  #-1 is to avoid messing with the outcome variable
 table(preds)
@@ -622,6 +392,19 @@ preds<-predict(model_rf,test[,-1])
 table(preds)
 auc(preds,test$Match_Status)  #See how the AUC improves with only 10 variables.  
 
+### Use recursive feature elimination (rfe), https://www.machinelearningplus.com/machine-learning/caret-package/ 
+options(warn=-1)
+subsets <- c(2:24)
+ctrl <- rfeControl(functions = rfFuncs,
+                   method = "repeatedcv",
+                   repeats = 2,
+                   verbose = FALSE)
+
+lmProfile <- rfe(x=train[, 2:24], y=train$Match_Status,
+                 sizes = subsets,
+                 rfeControl = ctrl)
+lmProfile
+
 #=================================================================
 # Split Full Data Set for Creating Model
 #=================================================================
@@ -630,20 +413,82 @@ auc(preds,test$Match_Status)  #See how the AUC improves with only 10 variables.
 # keeping the proportions of the Survived class label the
 # same across splits.
 set.seed(123456)
-indexes <- caret::createDataPartition(train$Match_Status,
+indexes <- caret::createDataPartition(y=data1$Match_Status,   #Create the training set from the whole data
                                times = 1,
                                p = 0.7,
                                list = FALSE)
 match.train <- train[indexes,]
+match.train <- na.omit(match.train)
 nrow(match.train)
+sum(is.na(match.train))
 match.test <- train[-indexes,]
+match.test <- na.omit(match.test)
+sum(is.na(match.test))
 nrow(match.test)
 
-# Examine the proportions of the Survived class lable across
+
+# Examine the proportions of the Match_Status class lable across
 # the datasets.
 prop.table(table(data1$Match_Status))       #Original data set proportion 
 prop.table(table(match.train$Match_Status)) #Train data set proportion
 prop.table(table(match.test$Match_Status))  #Test data set proportion
+
+y = match.train$Match_Status
+x = match.train[2:24]
+
+#=================================================================
+# Data Visualization
+#=================================================================
+dim(match.train)
+colnames(match.train)
+skimmed <- skim_to_wide(match.train)
+skimmed[, c(2:15)]
+
+str(match.train)
+AppliedPredictiveModeling::transparentTheme(trans = .4)
+caret::featurePlot(x = match.train [,17:23], 
+                   scales=list(x=list(relation="free"), y=list(relation="free")), 
+                   y = match.train[,1], 
+                   plot = "box",  #What  predictors do you notice have significant mean differences?
+                   strip=strip.custom(par.strip.text=list(cex=.7)),
+                   ## Add a key at the top
+                   auto.key = list(columns = 3))
+
+#dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
+#ggpairs(data1, aes(colour = Match_Status, alpha = 0.4),
+#       progress=TRUE)  #Picks the correct plot for numeric vs. categorical
+#devtools::install_github("mtennekes/tabplot")
+library(tabplot)
+tableplot(match.train, sortCol=Match_Status, decreasing=TRUE, nBins=100, scales="auto", sample=TRUE)
+itableplot()
+
+#=================================================================
+# Check for NAs in data
+#=================================================================
+sum(is.na(match.train))
+#View(match.train)
+
+#=================================================================
+# Impute Missing Data using preProcess
+#=================================================================
+# Caret supports a number of mechanism for imputing (i.e., 
+# predicting) missing values. Leverage bagged decision trees
+# to impute missing values for the Age feature.
+
+# First, transform all feature to dummy variables.
+dummy.vars <- caret::dummyVars(~ ., data = match.train[, -1])
+match.train.dummy <- predict(dummy.vars, match.train[, -1])  #Had to remove spaces from all variables and values
+#View(data1.dummy)
+
+# Now, impute!
+pre.process <- caret::preProcess(match.train.dummy, method = "bagImpute")
+imputed.data <- predict(pre.process, match.train.dummy)
+sum(is.na(imputed.data))
+#View(imputed.data)
+
+#Check that all predictors are between zero and one
+apply(match.train.dummy[, 2:24], 2, FUN=function(x){c('min'=min(x), 'max'=max(x))})
+
 
 #=================================================================
 # Train Model
