@@ -14,7 +14,7 @@
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot", "nomogramEx", "shiny", "earth")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -469,7 +469,7 @@ preds<-predict(model_rf,test[,-1])
 table(preds)
 auc(preds,test$Match_Status)  #See how the AUC improves with only 10 variables.  
 
-#Option 3: Recursive Feature Elimination
+#Method 3: Recursive Feature Elimination
 ### Use recursive feature elimination (rfe), https://www.machinelearningplus.com/machine-learning/caret-package/ 
 options(warn=-1)
 subsets <- c(2:24)
@@ -483,9 +483,27 @@ lmProfile <- rfe(x=train[, 2:24], y=train$Match_Status,
                  rfeControl = ctrl)
 lmProfile  #Picked 5 variables that were able to predict 
 
-#=================================================================
-#More on Factor Selection
-#=================================================================
+#Method 4:  Boruta search
+boruta_output <- Boruta::Boruta(Match_Status ~ ., data=na.omit(train), doTrace=0)  
+names(boruta_output)
+# Get significant variables including tentatives
+boruta_signif <-Boruta::getSelectedAttributes(boruta_output, withTentative = TRUE)
+print(boruta_signif)  
+
+# Do a tentative rough fix
+roughFixMod <- TentativeRoughFix(boruta_output)
+boruta_signif <- getSelectedAttributes(roughFixMod)
+print(boruta_signif)
+
+# Variable Importance Scores
+imps <- attStats(roughFixMod)
+imps2 = imps[imps$decision != 'Rejected', c('meanImp', 'decision')]
+head(imps2[order(-imps2$meanImp), ])  # descending sort
+
+# Plot variable importance
+plot(boruta_output, cex.axis=0.35, las=2, xlab="", main="Variable Importance")  
+
+#Method 5:  Variable important from ML algorithm 
 modelLookup('earth')
 
 # Train the model using randomForest and predict on the training data itself.
@@ -498,6 +516,37 @@ varimp_mars <- varImp(model_mars)
 plot(varimp_mars, main="Variable Importance with MARS") #Visual of the most important factors
 
 
+##Method 5:  LASSO, not working
+trainData <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_rename_61.rds")) 
+colnames(trainData)
+x <- as.matrix(trainData[,-1]) # all X vars
+y <- as.double(as.matrix(ifelse(trainData[, 1]=='normal', 0, 1))) # Only Class
+
+# Fit the LASSO model (Lasso: Alpha = 1)
+set.seed(123456)
+cv.lasso <- cv.glmnet(x, y, family='binomial', alpha=1, parallel=TRUE, standardize=TRUE, type.measure='auc')
+
+# Results
+plot(cv.lasso)
+
+##Method 6:  Genetic algorithm
+# Define control function
+ga_ctrl <- gafsControl(functions = caretGA,  # another option is `caretGA`.
+                       method = "cv",
+                       repeats = 3)
+
+# Genetic Algorithm feature selection
+set.seed(100)
+ga_obj <- gafs(x=train[, c(2:24)], 
+               y=train[, 1], 
+               iters = 3,   # normally much higher (100+)
+               gafsControl = ga_ctrl)
+
+ga_obj
+
+# Optimal variables
+ga_obj$optVariables
+
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
 #=================================================================
@@ -508,7 +557,7 @@ testData2 <- predict(pre.process, test)
 testData3 <- predict(dummy.vars, testData2)
 
 # Step 3: Transform the features to range between 0 and 1
-testData4 <- predict(pre.process, test)
+testData4 <- predict(pre.process, testData3)
 
 # View
 head(testData4[, 1:10])
@@ -517,11 +566,51 @@ head(testData4[, 1:10])
 #=================================================================
 # Predict on the NEW/TEST DATA
 #=================================================================
-predicted <- predict(model_mars, test)
+predicted <- predict(model_mars, testData2)
 head(predicted)
 
 # Compute the confusion matrix
 caret::confusionMatrix(reference = test$Match_Status, data = predicted, mode='everything')
 
-###################################################################################
+#=================================================================
+# Use the TEST data on MULTIPLE MODELS.  BALLER!
+#=================================================================
+# Stacking Algorithms - Run multiple algos in one call.
+trainControl <- trainControl(method="repeatedcv", 
+                             number=10, 
+                             repeats=3,
+                             savePredictions=TRUE, 
+                             classProbs=TRUE)
+
+algorithmList <- c('rf', 'adaboost', 'earth', 'xgbDART', 'svmRadial')
+
+set.seed(123456)
+models <- caretList(Match_Status ~ ., data=testData2, trControl=trainControl, methodList=algorithmList) 
+results <- resamples(models)
+summary(results)
+
+# Box plots to compare models
+scales <- list(x=list(relation="free"), y=list(relation="free"))
+bwplot(results, scales=scales)
+
+
+#=================================================================
+# How to combine the predictions of multiple models to form a final prediction?
+#=================================================================
+# Create the trainControl
+set.seed(123456)
+stackControl <- trainControl(method="repeatedcv", 
+                             number=10, 
+                             repeats=3,
+                             savePredictions=TRUE, 
+                             classProbs=TRUE)
+
+# Ensemble the predictions of `models` to form a new combined prediction based on glm
+stack.glm <- caretStack(models, method="glm", metric="Accuracy", trControl=stackControl)
+print(stack.glm)
+
+# Predict on testData
+stack_predicteds <- predict(stack.glm, newdata=test)
+head(stack_predicteds)
+
 
