@@ -4,17 +4,23 @@
 #https://www.kaggle.com/sindhuee/r-caret-example
 #https://github.com/datasciencedojo/meetup/blob/master/intro_to_ml_with_r_and_caret/IntroToMachineLearning.R
 #https://www.machinelearningplus.com/machine-learning/caret-package/
+#https://www.machinelearningplus.com/machine-learning/feature-selection/
 
 
 #Pull clerkship grades by hand.  
 #Create column of CU students vs. universe
 #Create column of CU students who did not match vs. all students who did not match.  
+#If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
+#Hurts student if they do not get a grade at Stanford clerkship.  
+#Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
+#At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
+
 
 #Install and Load packages
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet")
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl")
 .libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
@@ -33,21 +39,21 @@ setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
 #Load Data
 data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_rename_61.rds")) 
 #Carat gets confused by tibbles so convert to data.frame  
-
  ##plot relevant features for lots of variables
  colnames(data)
  features <-colnames(data)
- features_rel<-features [3:35]   
+ features_rel<-features [3:5]   
  
- for( i in features_rel ){
-   
-   p<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") +
-     guides(fill = guide_legend(nrow = 4, byrow = T) + 
-    geom_text (aes(label = y), position = position_stack(vjust = 0.5), size = 10, angle = 45, check_overlap = TRUE) +
+for( i in features_rel ){
+   temp_plot<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
+ ggtitle(paste0("Match Statistics for 2019 OBGYN: \n",i)) + 
+    guides(fill = guide_legend(nrow = 4, byrow = T) + 
+    geom_text (aes(label = y), position = position_stack(vjust = 0.5), size = 10, angle = 45, check_overlap = TRUE) + 
     geom_label(fontface = "bold"))
-   print(p) }
-   #ggsave("p.png", plot = last_plot(), device = "png", scale = 1, width = 12, height = 10, units = c("cm"), dpi = 500,  bg = "transparent")
-  
+   print(temp_plot) 
+   ggsave(temp_plot, file=paste0("plot_", i,".png"), width = 14, height = 10, units = "cm", dpi = 500,  bg = "transparent")
+ }
+ print(temp_plot)
  
  ################################################################
  #### Building Table 1 ####
@@ -125,211 +131,8 @@ table1 <- tableby(Match_Status ~
  t.test(data$Count_of_Oral_Presentation ~ data$Match_Status)  #NS
  t.test(data$Count_of_Peer_Reviewed_Book_Chapter ~ data$Match_Status) #NS
  t.test(data$Count_of_Peer_Reviewed_Online_Publication ~ data$Match_Status) #NS
- chisq.test(data$Match_Status, data$OBGYN_Grade) #Failes because too many NA
+ chisq.test(data$Match_Status, data$OBGYN_Grade) #Fails because too many NA
  #######################################################################################
-
-#For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
-#mod_fit has all variables included
-colnames(data)
- data$Match_Status <- as.factor(data$Match_Status)
- mod_fit <- glm(Match_Status ~ ., 
-                data=data, family="binomial")
- print(mod_fit)
-
- 
- ##Feature Selection##
- #mod_fit_two has only the univariate statistically significant values 
-mod_fit_two <- glm(Match_Status ~ 
-                   Age +  #Univariate SS
-                   Gender + #Univariate SS
-                   white_non_white + #Univariate SS
-                   Couples_Match + #Univariate SS
-                   USMLE_Step_1_Score + #Univariate SS
-                   Visa_Status_Expected + #Univariate SS
-                   Medical_Education_or_Training_Interrupted + #Univariate SS
-                   Misdemeanor_Conviction + #Univariate SS
-                   Alpha_Omega_Alpha + #Univariate SS
-                   US_or_Canadian_Applicant + #Univariate SS
-                   Gold_Humanism_Honor_Society + #Univariate SS
-                   Visa_Sponsorship_Needed + #Univariate SS
-                   Count_of_Poster_Presentation +  #Univariate SS
-                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
-                   data=data, family="binomial")
-print(mod_fit_two)
- 
-####Pseudo R^2
-library(pscl)
-pR2(mod_fit)  # look for 'McFadden', values closer to zero indicating that the model has no predictive power
-pR2(mod_fit_two) 
-
-####Wald Test - Individual Variable Importance
-#  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
-
-#Keep p<0.3
-regTermTest(mod_fit_two, "Age") #Wald Test p=0.30, good
-regTermTest(mod_fit_two, "Gender") #Wald Test p=0.30, good
-regTermTest(mod_fit_two, "white_non_white") # Wald Test p=0.30
-regTermTest(mod_fit_two, "Couples_Match") # Wald Test p=0.048, KEEP
-regTermTest(mod_fit_two, "Visa_Status_Expected") #Wald Testp=0.35
-regTermTest(mod_fit_two, "Medical_Education_or_Training_Interrupted") #Wald Test p=0.75, DROP??
-regTermTest(mod_fit_two, "Alpha_Omega_Alpha") # Wald Test p=0.5
-regTermTest(mod_fit_two, "USMLE_Step_1_Score") #Wald Test p=0.025
-regTermTest(mod_fit_two, "US_or_Canadian_Applicant") #Wald Test p0.98
-regTermTest(mod_fit_two, "Gold_Humanism_Honor_Society") #Wald Test p=0.01
-regTermTest(mod_fit_two, "Count_of_Oral_Presentation") # Wald Test p=0.47, KEEP
-regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #Wald Test p=0.64, DROP
-regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test p=0.64, DROP
-regTermTest(mod_fit_two, "Count_of_Poster_Presentation") #Wald Test  KEEP!
-regTermTest(mod_fit_two, "Misdemeanor_Conviction")  #Wald Test Drop it because Wald test show p=0.641
-regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test Drop it p=0.7
-regTermTest(mod_fit_two, "Military_Service_Obligation") #Wald Test Drop it, p=0.43
-regTermTest(mod_fit_two, "Other_Service_Obligation") #Wald Test Drop
-regTermTest(mod_fit_two, "Visa_Sponsorship_Needed") #Wald Test p=0.20
-
-#To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
-varImp_mod_fit_two <- caret::varImp(mod_fit_two)
-plot(varImp_mod_fit_two, main="Variable Importance")
- 
-mod_fit_three <- glm(Match_Status ~ 
-                     Age + #Univariate SS  #Wald Test p=0.40, fair
-                     Gender + #Univariate SS  #Wald Test p=0.30, good
-                     white_non_white + #Univariate SS,  # p=0.30
-                     Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
-                     USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
-                     Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
-                     Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
-                     Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
-                     Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
-                     Count_of_Poster_Presentation +
-                       Medical_Education_or_Training_Interrupted + #Univariate SS
-                       Misdemeanor_Conviction + #Univariate SS
-                       US_or_Canadian_Applicant + #Univariate SS
-                       Visa_Sponsorship_Needed + #Univariate SS
-                       Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
-                   data=data, family="binomial")
-print(mod_fit_three)
-#plot(mod_fit_three)
- 
-###### Now that we have picked the variables and the best model.  
-colnames(data)
-ddist <- datadist(data)
-ddist
-options (datadist = 'ddist')
-
-# Logistic Regression Model #
-# Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
-model.binomial.significant <- rms::lrm(Match_Status ~ 
-                                         Age + #Univariate SS  #Wald Test p=0.40, fair
-                                         Gender + #Univariate SS  #Wald Test p=0.30, good
-                                         white_non_white + #Univariate SS,  # p=0.30
-                                         Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
-                                         USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
-                                         Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
-                                         Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
-                                         Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
-                                         Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
-                                         Count_of_Poster_Presentation +
-                                         Medical_Education_or_Training_Interrupted + #Univariate SS
-                                         Misdemeanor_Conviction + #Univariate SS
-                                         US_or_Canadian_Applicant + #Univariate SS
-                                         Visa_Sponsorship_Needed + #Univariate SS
-                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
-             data = data, x=TRUE, y=TRUE)
-
-print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-
-####Test Area Under the Curve
-library(ROCR)
-# Compute AUC for predicting Match_Status_Dichot with the model
-prob <- predict(mod_fit_three, newdata=data, type="response")
-pred <- prediction(prob, data$Match_Status)
-perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-plot(perf)
-jpeg('area_under_the_curve.jpeg')
-auc <- performance(pred, measure = "auc")
-auc <- auc@y.values[[1]]
-auc  #81% AUC
-
-  #######################################################################################
-  ###NOMOGRAM 
-  ##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
-  #fun.at - Demarcations on the function axis: "Matching into obgyn"
-  #lp=FALSE so we don't have the logistic progression
-  
-  nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant, 
-                          #lp.at = seq(-3,4,by=0.5),
-                          fun = plogis, 
-                          fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
-                          funlabel = "Chance of Matching in OBGYN, 2019", 
-                          lp =FALSE,
-                          #conf.int = c(0.1,0.7), 
-                          abbrev = F,
-                          minlength = 9)
-nomogramEx(nomo=nomo_from_model.binomial.significant,np=1,digit=2)  #Gives the polynomial formula
-
-################################################################
-#Data cleaning, Place nicer labels for the data
-#label(data$Self_Identify)    <- 'Race/Ethnicity'
-label(data$Age)    <- 'Age'
-label(data$Alpha_Omega_Alpha) <- 'AOA Member'
-label(data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
-label(data$Gender) <- 'Gender'
-label(data$Couples_Match) <- 'Couples Matching'
-label(data$Visa_Status_Expected) <- 'Expected Visa Status'
-label(data$Medical_School_Type) <- 'Medical School Type'
-label(data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
-label(data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
-#label(data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
-#label(data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
-#label(data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
-label(data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
-label(data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
-label(data$Military_Service_Obligation) <- 'Military Service Obligation'
-label(data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
-label(data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
-label(data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
-label(data$Other_Service_Obligation) <- 'Other Service Obligation'
-#label(data$Med_school_condensed) <- 'Medical School Condensed' 
-label(data$white_non_white) <- 'Race' 
-label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
-label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
-label(data) #Check labels for the data set
-  
-  dev.off()  #Run this until null device = 1
-  nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
-       cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
-       #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
-       #col.conf=c('red','green'),
-       #conf.space=c(0.1,0.5),
-       label.every=1,
-       col.grid = gray(c(0.8, 0.95)),
-       which="Match_Status")
-  print(nomo_from_model.binomial.significant)
-  #legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
-  
-  #######################################################################################
-  beepr::beep(sound = 4)
-  rsconnect::setAccountInfo(name='mufflyt', token='D8846CA8B32E6A5EAEA94BFD02EEEA39', secret='dIXWOv+ud/z6dTPN2xOF9M4BKJtWKROc2cOsZS4U')
-  DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
-  runApp()
-  #If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
-  
-  #Hurts student if they do not get a grade at Stanford clerkship.  
-  
-  #Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
-  
-  #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
-
- 
-###################################################################################
-# Model Calibration
-####################################################################################
-data1 <- data
-
-data1$Match_Status <- as.factor(data1$Match_Status)
-sum(is.na(data1))
-data1 <- na.omit(data1)
-sum(is.na(data1))
 
 #======================================================================================
 #https://www.meetup.com/data-science-dojo/events/239730653/
@@ -338,6 +141,12 @@ sum(is.na(data1))
 #=================================================================
 # Data Wrangling
 #=================================================================
+ data1 <- data
+ 
+ data1$Match_Status <- as.factor(data1$Match_Status)
+ sum(is.na(data1))
+ data1 <- na.omit(data1)
+ sum(is.na(data1))
 str(data1)
 
 #=================================================================
@@ -369,7 +178,7 @@ prop.table(table(match.train$Match_Status)) #Train data set proportion
 prop.table(table(match.test$Match_Status))  #Test data set proportion
 
 y = match.train$Match_Status
-x = match.train[2:24]
+x = match.train[,2:24]
 
 #=================================================================
 # Data Visualization
@@ -390,11 +199,8 @@ caret::featurePlot(x = match.train [,17:23],
                    auto.key = list(columns = 3))
 
 #dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
-#ggpairs(data1, aes(colour = Match_Status, alpha = 0.4),
-#       progress=TRUE)  #Picks the correct plot for numeric vs. categorical
 #devtools::install_github("mtennekes/tabplot")
-library(tabplot)
-tableplot(match.train, sortCol=Match_Status, decreasing=TRUE, nBins=100, scales="auto", sample=TRUE)
+tableplot(match.train, select = c(Match_Status, Age, Gender, Couples_Match), sortCol=Match_Status, decreasing=TRUE, nBins=10, scales="auto", sample=TRUE)
 #itableplot()
 
 #=================================================================
@@ -529,23 +335,44 @@ cv.lasso <- cv.glmnet(x, y, family='binomial', alpha=1, parallel=TRUE, standardi
 # Results
 plot(cv.lasso)
 
-##Method 6:  Genetic algorithm
-# Define control function
-ga_ctrl <- gafsControl(functions = caretGA,  # another option is `caretGA`.
-                       method = "cv",
-                       repeats = 3)
+#=================================================================
+#  Create  a Model
+#=================================================================
+# Build Logistic Model
+plot(boruta_output, cex.axis=0.35, las=2, xlab="", main="Variable Importance")  
 
-# Genetic Algorithm feature selection
-set.seed(100)
-ga_obj <- gafs(x=train[, c(2:24)], 
-               y=train[, 1], 
-               iters = 3,   # normally much higher (100+)
-               gafsControl = ga_ctrl)
 
-ga_obj
+###### Now that we have picked the variables and the best model.  
+colnames(train)
+ddist <- datadist(train)
+ddist
+options (datadist = 'ddist')
 
-# Optimal variables
-ga_obj$optVariables
+# Logistic Regression Model #
+# Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
+model.binomial.significant <- rms::lrm(Match_Status ~ 
+                                         #Age + #Univariate SS  #Wald Test p=0.40, fair
+                                         #Gender + #Univariate SS  #Wald Test p=0.30, good
+                                         #white_non_white + #Univariate SS,  # p=0.30
+                                         #Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                                         USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                                         #Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
+                                         Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                                         #Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                                         #Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                                         Count_of_Poster_Presentation +
+                                         #Medical_Education_or_Training_Interrupted + #Univariate SS
+                                         #Misdemeanor_Conviction + #Univariate SS
+                                         US_or_Canadian_Applicant, #Univariate SS
+                                         #Count_of_Non_Peer_Reviewed_Online_Publication,
+                                         #Visa_Sponsorship_Needed + #Univariate SS
+                                         #Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
+                                       data = train, x=TRUE, y=TRUE)
+
+print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
+# If p > .5, then Match_Status is 1 else 0
+y_pred <- ifelse(pred > 0.5, 1, 0)
+y_act <- test$Match_Status
 
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
@@ -562,6 +389,12 @@ testData4 <- predict(pre.process, testData3)
 # View
 head(testData4[, 1:10])
 
+#=================================================================
+#Look for Co-linearity
+#We should check for multicollinearity in the model. As seen below, all X variables in the model have VIF well below 4.
+#=================================================================
+
+
 
 #=================================================================
 # Predict on the NEW/TEST DATA
@@ -571,6 +404,30 @@ head(predicted)
 
 # Compute the confusion matrix
 caret::confusionMatrix(reference = test$Match_Status, data = predicted, mode='everything')
+
+#=================================================================
+# Check the quality of the new model
+#=================================================================
+####Pseudo R^2
+library(pscl)
+pR2(model.binomial.significant)  # look for 'McFadden', values closer to zero indicating that the model has no predictive power
+#pR2(mod_fit_two) 
+
+####Test Area Under the Curve
+library(ROCR)
+# Compute AUC for predicting Match_Status_Dichot with the model
+prob <- predict(mod_fit_three, newdata=data, type="response")
+pred <- prediction(prob, data$Match_Status)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf)
+jpeg('area_under_the_curve.jpeg')
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+auc  #81% AUC
+
+#Another AUC graph
+InformationValue::plotROC(y_act, predicted)
+InformationValue::AUROC(y_act, predicted)
 
 #=================================================================
 # Use the TEST data on MULTIPLE MODELS.  BALLER!
@@ -613,4 +470,127 @@ print(stack.glm)
 stack_predicteds <- predict(stack.glm, newdata=test)
 head(stack_predicteds)
 
+
+
+#For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
+#mod_fit has all variables included
+colnames(data)
+data$Match_Status <- as.factor(data$Match_Status)
+mod_fit <- glm(Match_Status ~ ., 
+               data=data, family="binomial")
+print(mod_fit)
+
+
+##Feature Selection##
+#mod_fit_two has only the univariate statistically significant values 
+mod_fit_two <- glm(Match_Status ~ 
+                     Age +  #Univariate SS
+                     Gender + #Univariate SS
+                     white_non_white + #Univariate SS
+                     Couples_Match + #Univariate SS
+                     USMLE_Step_1_Score + #Univariate SS
+                     Visa_Status_Expected + #Univariate SS
+                     Medical_Education_or_Training_Interrupted + #Univariate SS
+                     Misdemeanor_Conviction + #Univariate SS
+                     Alpha_Omega_Alpha + #Univariate SS
+                     US_or_Canadian_Applicant + #Univariate SS
+                     Gold_Humanism_Honor_Society + #Univariate SS
+                     Visa_Sponsorship_Needed + #Univariate SS
+                     Count_of_Poster_Presentation +  #Univariate SS
+                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published,
+                   data=data, family="binomial")
+print(mod_fit_two)
+
+
+
+####Wald Test - Individual Variable Importance
+#  The idea is to test the hypothesis that the coefficient of an independent variable in the model is significantly different from zero. If the test fails to reject the null hypothesis, this suggests that removing the variable from the model will not substantially harm the fit of that model.
+
+#Keep p<0.3
+regTermTest(mod_fit_two, "Age") #Wald Test p=0.30, good
+regTermTest(mod_fit_two, "Gender") #Wald Test p=0.30, good
+regTermTest(mod_fit_two, "white_non_white") # Wald Test p=0.30
+regTermTest(mod_fit_two, "Couples_Match") # Wald Test p=0.048, KEEP
+regTermTest(mod_fit_two, "Visa_Status_Expected") #Wald Testp=0.35
+regTermTest(mod_fit_two, "Medical_Education_or_Training_Interrupted") #Wald Test p=0.75, DROP??
+regTermTest(mod_fit_two, "Alpha_Omega_Alpha") # Wald Test p=0.5
+regTermTest(mod_fit_two, "USMLE_Step_1_Score") #Wald Test p=0.025
+regTermTest(mod_fit_two, "US_or_Canadian_Applicant") #Wald Test p0.98
+regTermTest(mod_fit_two, "Gold_Humanism_Honor_Society") #Wald Test p=0.01
+regTermTest(mod_fit_two, "Count_of_Oral_Presentation") # Wald Test p=0.47, KEEP
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Journal_Articles_Abstracts") #Wald Test p=0.64, DROP
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test p=0.64, DROP
+regTermTest(mod_fit_two, "Count_of_Poster_Presentation") #Wald Test  KEEP!
+regTermTest(mod_fit_two, "Misdemeanor_Conviction")  #Wald Test Drop it because Wald test show p=0.641
+regTermTest(mod_fit_two, "Count_of_Peer_Reviewed_Book_Chapter") #Wald Test Drop it p=0.7
+regTermTest(mod_fit_two, "Military_Service_Obligation") #Wald Test Drop it, p=0.43
+regTermTest(mod_fit_two, "Other_Service_Obligation") #Wald Test Drop
+regTermTest(mod_fit_two, "Visa_Sponsorship_Needed") #Wald Test p=0.20
+
+#To assess the relative importance of individual predictors in the model, we can also look at the absolute value of the t-statistic for each model parameter. 
+varImp_mod_fit_two <- caret::varImp(mod_fit_two)
+plot(varImp_mod_fit_two, main="Variable Importance")
+
+
+#######################################################################################
+###NOMOGRAM 
+##Nomogram for a binary outcome (matching into residency), https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5451623/
+#fun.at - Demarcations on the function axis: "Matching into obgyn"
+#lp=FALSE so we don't have the logistic progression
+
+nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant, 
+                                                      #lp.at = seq(-3,4,by=0.5),
+                                                      fun = plogis, 
+                                                      fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
+                                                      funlabel = "Chance of Matching in OBGYN, 2019", 
+                                                      lp =FALSE,
+                                                      #conf.int = c(0.1,0.7), 
+                                                      abbrev = F,
+                                                      minlength = 9)
+nomogramEx(nomo=nomo_from_model.binomial.significant,np=1,digit=2)  #Gives the polynomial formula
+
+################################################################
+#Data cleaning, Place nicer labels for the data
+#label(data$Self_Identify)    <- 'Race/Ethnicity'
+label(data$Age)    <- 'Age'
+label(data$Alpha_Omega_Alpha) <- 'AOA Member'
+label(data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
+label(data$Gender) <- 'Gender'
+label(data$Couples_Match) <- 'Couples Matching'
+label(data$Visa_Status_Expected) <- 'Expected Visa Status'
+label(data$Medical_School_Type) <- 'Medical School Type'
+label(data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+label(data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
+#label(data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
+#label(data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
+#label(data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
+label(data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
+label(data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
+label(data$Military_Service_Obligation) <- 'Military Service Obligation'
+label(data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
+label(data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
+label(data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
+label(data$Other_Service_Obligation) <- 'Other Service Obligation'
+#label(data$Med_school_condensed) <- 'Medical School Condensed' 
+label(data$white_non_white) <- 'Race' 
+label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
+label(data) #Check labels for the data set
+
+dev.off()  #Run this until null device = 1
+nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
+                   cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
+                   #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
+                   #col.conf=c('red','green'),
+                   #conf.space=c(0.1,0.5),
+                   label.every=1,
+                   col.grid = gray(c(0.8, 0.95)),
+                   which="Match_Status")
+print(nomo_from_model.binomial.significant)
+#legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
+
+#######################################################################################
+beepr::beep(sound = 4)
+rsconnect::setAccountInfo(name='mufflyt', token='D8846CA8B32E6A5EAEA94BFD02EEEA39', secret='dIXWOv+ud/z6dTPN2xOF9M4BKJtWKROc2cOsZS4U')
+DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
 
