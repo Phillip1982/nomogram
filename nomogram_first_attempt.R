@@ -1,27 +1,9 @@
-#https://lengyueyang.github.io/Research/Nomogram-rms.html
-#https://www.r-bloggers.com/evaluating-logistic-regression-models/
-#https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
-#https://www.kaggle.com/sindhuee/r-caret-example
-#https://github.com/datasciencedojo/meetup/blob/master/intro_to_ml_with_r_and_caret/IntroToMachineLearning.R
-#https://www.machinelearningplus.com/machine-learning/caret-package/
-#https://www.machinelearningplus.com/machine-learning/feature-selection/
-
-
-#Pull clerkship grades by hand.  
-#Create column of CU students vs. universe
-#Create column of CU students who did not match vs. all students who did not match.  
-#If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
-#Hurts student if they do not get a grade at Stanford clerkship.  
-#Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
-#At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
-
-
 #Install and Load packages
 #rm(list=ls())
 #remotes::install_github("topepo/caret")
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "tabplot", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl")
-.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
+pacman::p_load('Hmisc', 'readxl', 'XML', 'reshape2', 'devtools', 'plyr', 'packrat', 'highcharter', 'purrr', 'readr', 'htmlwidgets', 'RColorBrewer', 'leaflet', 'rgdal', 'dygraphs', 'quantmod', 'DT', 'formattable', 'ggplot2',  'idbr', 'genderizeR', 'animation', 'dplyr', 'magick', 'tidycensus', 'ggthemes', 'stringr', 'geosphere', 'ggmap', 'grid', 'gmapsdistance', 'zipcode', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'leaflet', 'rgdal', 'htmltools', 'mapview', 'htmlwidgets', 'sf', 'sp', 'tidyverse', 'viridis', 'fansi', 'webshot', 'geosphere', 'zipcode', 'leaflet.extras', 'raster',  'spData','spDataLarge', 'stplanr', 'tmap', 'osmdata', 'arsenal', 'doMC', "wesanderson", "fasterize", "USAboundaries", "RANN", "tidycensus", "geofacet", "extrafont", "shiny", "ParallelLogger", "parallel", "RSelenium", "humaniformat", "visdat", "skimr", "assertr", "tidylog", "doParallel", "DiagrammeR", "DiagrammeRsvg", "rsvg", "iterators", "parallel", "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "rsconnect", "party", "recipes", "caret", "caretEnsemble","export", "caTools", "mlbench", "randomForest", "survey", "e1071", "doSNOW", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "cowplot")
+#.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 set.seed(123456)
 registerDoMC(cores = detectCores()-1)
@@ -29,20 +11,21 @@ dev.off()
 
 ##################################################################
 #### Set data file locations ####
-# Set path to data and filenames as "constants" and use CAPS to denote.
 setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
-#1)  Create Table 1 of matched vs. unmatched applicants
-#2)  Create logistic regression
-#3)  Create nomogram
 
 ################################################################
 #Load Data
-data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_rename_61.rds")) 
-#Carat gets confused by tibbles so convert to data.frame  
- ##plot relevant features for lots of variables
+download.file("https://www.dropbox.com/s/b2vqurq5575dbxf/CU_Obgyn_Residency_Applicants_rename_61.rds?raw=1",destfile=paste0("CU_Obgyn_Residency_Applicants_rename_61.rds"), method = "auto", cacheOK = TRUE)
+data <- read_rds("data/CU_Obgyn_Residency_Applicants_rename_61.rds")
+
+download.file("https://www.dropbox.com/s/845h7ixrjoz4h5m/CU_Obgyn_Residency_Applicants_fill_48.rds?raw=1",destfile=paste0("CU_Obgyn_Residency_Applicants_fill_48.rds"), method = "auto", cacheOK = TRUE)
+full_data <- read_rds("data/CU_Obgyn_Residency_Applicants_fill_48.rds")  #Bring in the full data set
+
+################################################################
+####  Plot variable characteristics
  colnames(data)
  features <-colnames(data)
- features_rel<-features [3:5]   
+ features_rel<-features [2:24]   
  
 for( i in features_rel ){
    temp_plot<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
@@ -54,14 +37,12 @@ for( i in features_rel ){
    ggsave(temp_plot, file=paste0("plot_", i,".png"), width = 14, height = 10, units = "cm", dpi = 500,  bg = "transparent")
  }
  print(temp_plot)
- 
+ dev.off()
+
  ################################################################
  #### Building Table 1 ####
- #Bring in the full data set
-full_data <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_fill_48.rds")) 
- #Use the arsenal package to create a table one with p-values.  I changed the stats so I get median, IQR.   
 colnames(full_data)
-table1 <- tableby(Match_Status ~ 
+table1 <- tableby(Match_Status ~
                     Self_Identify + 
                     white_non_white + 
                     Age + 
@@ -108,7 +89,7 @@ table1 <- tableby(Match_Status ~
  arsenal::write2word(table1, paste0("~/Dropbox/Nomogram/nomogram/results/table1.doc"))
  
  #######################################################################################
- #Keep predictors in the binary logistic regression model that have a p<0.10 a priori to create nomogram
+ #  Explore Data
  colnames(data)
  t.test(data$Age~data$Match_Status) #SS # where y is numeric and x is a binary factor
  chisq.test(data$Match_Status, data$white_non_white) #SS
@@ -134,20 +115,19 @@ table1 <- tableby(Match_Status ~
  chisq.test(data$Match_Status, data$OBGYN_Grade) #Fails because too many NA
  #######################################################################################
 
-#======================================================================================
-#https://www.meetup.com/data-science-dojo/events/239730653/
-#=======================================================================================
-
 #=================================================================
 # Data Wrangling
 #=================================================================
- data1 <- data
- 
- data1$Match_Status <- as.factor(data1$Match_Status)
- sum(is.na(data1))
- data1 <- na.omit(data1)
- sum(is.na(data1))
-str(data1)
+
+#Look at the full data set for NAs
+ nrow(data)
+ ncol(data)
+ #View(data)
+ data$Match_Status <- as.factor(data$Match_Status)
+ sum(is.na(data))
+ data <- na.omit(data)
+ sum(is.na(data))
+str(data)
 
 #=================================================================
 # Split Full Data Set for Creating Model
@@ -156,29 +136,24 @@ str(data1)
 # Use caret to create a 70/30% split of the training data,
 # keeping the proportions of the Survived class label the
 # same across splits.
-set.seed(123456)
-indexes <- caret::createDataPartition(y=data1$Match_Status,   #Create the training set from the whole data
+indexes <- caret::createDataPartition(y=data$Match_Status,   #Create the training set from the whole data
                                times = 1,
                                p = 0.7,
                                list = FALSE)
-match.train <- data1[indexes,]
+match.train <- data[indexes,]
 match.train <- na.omit(match.train)
 nrow(match.train)
 sum(is.na(match.train))
-match.test <- data1[-indexes,]
+match.test <- data[-indexes,]
 match.test <- na.omit(match.test)
 sum(is.na(match.test))
 nrow(match.test)
 
-
 # Examine the proportions of the Match_Status class lable across
 # the datasets.
-prop.table(table(data1$Match_Status))       #Original data set proportion 
+prop.table(table(data$Match_Status))       #Original data set proportion 
 prop.table(table(match.train$Match_Status)) #Train data set proportion
 prop.table(table(match.test$Match_Status))  #Test data set proportion
-
-y = match.train$Match_Status
-x = match.train[,2:24]
 
 #=================================================================
 # Data Visualization
@@ -198,11 +173,6 @@ caret::featurePlot(x = match.train [,17:23],
                    ## Add a key at the top
                    auto.key = list(columns = 3))
 
-#dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
-#devtools::install_github("mtennekes/tabplot")
-tableplot(match.train, select = c(Match_Status, Age, Gender, Couples_Match), sortCol=Match_Status, decreasing=TRUE, nBins=10, scales="auto", sample=TRUE)
-#itableplot()
-
 #=================================================================
 # Check for NAs in data
 #=================================================================
@@ -218,9 +188,7 @@ sum(is.na(match.train))
 
 # First, transform all feature to dummy variables.
 dummy.vars <- caret::dummyVars(~ ., data = match.train[, -1])
-match.train.dummy <- predict(dummy.vars, match.train[, -1])  #Had to remove spaces from all variables and values
-#trainData <- match.train.dummy   ####Not sure what I should do with this.
-#View(trainData)
+trainData <- predict(dummy.vars, match.train[, -1])  #Had to remove spaces from all variables and values
 
 # Now, impute!
 pre.process <- caret::preProcess(match.train, method = "bagImpute")
@@ -229,22 +197,21 @@ sum(is.na(imputed.data))
 #View(imputed.data)
 
 #Check that all predictors are between zero and one
-apply(trainData[, 2:24], 2, FUN=function(x){c('min'=min(x), 'max'=max(x))})
+apply(match.train[, 2:24], 2, FUN=function(x){c('min'=min(x), 'max'=max(x))})
 
 
 #=================================================================
 #  Factor Selection
 #=================================================================
 #https://www.analyticsvidhya.com/blog/2016/12/introduction-to-feature-selection-methods-with-an-example-or-how-to-select-the-right-variables/
-dim(trainData)
 indexes <- caret::createDataPartition(y = match.train$Match_Status,  #Divide the data into train and test sets
                                       times = 1,
                                       p = 0.7,
                                       list = FALSE)
 #Split the data so that we cna run a model and find best factors.  
-train <- data1[indexes,]
+train <- data[indexes,]
 nrow(train)
-test <- data1[-indexes,]
+test <- data[-indexes,]
 nrow(test)
 
 #Method One:  Principal Component Analysis
@@ -262,18 +229,22 @@ model_rf<-randomForest::randomForest(Match_Status ~ ., data = train, na.action =
 preds<-predict(model_rf,test[,-1])  #-1 is to avoid messing with the outcome variable
 table(preds)
 
-auc(preds,test$Match_Status)  ##checking accuracy
+test$Match_Status <- as.factor(test$Match_Status)
+#auc(preds,test$Match_Status)  ##checking accuracy
 randomForest::importance(model_rf)  #look at the feature importance
 
 model_rf<-randomForest::randomForest(Match_Status ~ USMLE_Step_1_Score+Age+US_or_Canadian_Applicant+Gold_Humanism_Honor_Society+Count_of_Oral_Presentation  
                                      #Applying Random forest for most important 10 features only
                                      
-                                     +Count_of_Peer_Reviewed_Journal_Articles_Abstracts+Count_of_Poster_Presentation+white_non_white+Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published+AOA,
-                                     
-                                     data = train, na.action = na.omit)
+                                     +Count_of_Peer_Reviewed_Journal_Articles_Abstracts+Count_of_Poster_Presentation+white_non_white+Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published+Alpha_Omega_Alpha,data = train, na.action = na.omit)
+
+
 preds<-predict(model_rf,test[,-1])
+class(preds)
 table(preds)
+class(test$Match_Status)
 auc(preds,test$Match_Status)  #See how the AUC improves with only 10 variables.  
+plotROC(test$Match_Status, preds)
 
 #Method 3: Recursive Feature Elimination
 ### Use recursive feature elimination (rfe), https://www.machinelearningplus.com/machine-learning/caret-package/ 
@@ -290,6 +261,8 @@ lmProfile <- rfe(x=train[, 2:24], y=train$Match_Status,
 lmProfile  #Picked 5 variables that were able to predict 
 
 #Method 4:  Boruta search
+#You'll see how you can use it to perform a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively elliminating irrelevant features.
+
 boruta_output <- Boruta::Boruta(Match_Status ~ ., data=na.omit(train), doTrace=0)  
 names(boruta_output)
 # Get significant variables including tentatives
@@ -321,34 +294,15 @@ plot(model_mars, main="Model Accuracies with MARS") #Iterations of hyperparamete
 varimp_mars <- varImp(model_mars)
 plot(varimp_mars, main="Variable Importance with MARS") #Visual of the most important factors
 
-
-##Method 5:  LASSO, not working
-trainData <- as.data.frame(read_rds("data/CU_Obgyn_Residency_Applicants_rename_61.rds")) 
-colnames(trainData)
-x <- as.matrix(trainData[,-1]) # all X vars
-y <- as.double(as.matrix(ifelse(trainData[, 1]=='normal', 0, 1))) # Only Class
-
-# Fit the LASSO model (Lasso: Alpha = 1)
-set.seed(123456)
-cv.lasso <- cv.glmnet(x, y, family='binomial', alpha=1, parallel=TRUE, standardize=TRUE, type.measure='auc')
-
-# Results
-plot(cv.lasso)
-
 #=================================================================
-#  Create  a Model
+#  Create a Logistic Regression Model: log(odds)=β0+β1∗x1+...+βn∗xn
 #=================================================================
-# Build Logistic Model
-plot(boruta_output, cex.axis=0.35, las=2, xlab="", main="Variable Importance")  
-
-
-###### Now that we have picked the variables and the best model.  
+# Build Logistic Model - Now that we have selected the features and the best model.  
 colnames(train)
 ddist <- datadist(train)
 ddist
 options (datadist = 'ddist')
 
-# Logistic Regression Model #
 # Recalculated (mod_fit_three) using rms::lrm so that I can use that package for the nomogram
 model.binomial.significant <- rms::lrm(Match_Status ~ 
                                          #Age + #Univariate SS  #Wald Test p=0.40, fair
@@ -370,9 +324,25 @@ model.binomial.significant <- rms::lrm(Match_Status ~
                                        data = train, x=TRUE, y=TRUE)
 
 print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-# If p > .5, then Match_Status is 1 else 0
-y_pred <- ifelse(pred > 0.5, 1, 0)
-y_act <- test$Match_Status
+
+#=================================================================
+#Look for Co-linearity with Variance Inflation Factors
+#We should check for multicollinearity in the model. As seen below, all X variables in the model have VIF well below 4.  #http://r-statistics.co/Logistic-Regression-With-R.html
+#=================================================================
+rms::vif(model.binomial.significant) #Should be <4
+
+#=================================================================
+#  Table 2 Odds Ratios and CIs
+#=================================================================
+
+oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(model.binomial.significant), confint.default(model.binomial.significant, level = 0.95))))
+print(oddsratios)
+
+#Write to HTML
+arsenal::write2html(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/oddratios_table2.html"), total=FALSE, title = "Table 2", quiet = FALSE, theme = "yeti")
+
+#Write to word
+arsenal::write2word(oddsratios, paste0("~/Dropbox/Nomogram/nomogram/results/oddsratios_table2.doc"))
 
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
@@ -388,12 +358,6 @@ testData4 <- predict(pre.process, testData3)
 
 # View
 head(testData4[, 1:10])
-
-#=================================================================
-#Look for Co-linearity
-#We should check for multicollinearity in the model. As seen below, all X variables in the model have VIF well below 4.
-#=================================================================
-
 
 
 #=================================================================
@@ -411,23 +375,21 @@ caret::confusionMatrix(reference = test$Match_Status, data = predicted, mode='ev
 ####Pseudo R^2
 library(pscl)
 pR2(model.binomial.significant)  # look for 'McFadden', values closer to zero indicating that the model has no predictive power
-#pR2(mod_fit_two) 
 
-####Test Area Under the Curve
-library(ROCR)
+model.binomial.significant2 <- glm(Match_Status ~ USMLE_Step_1_Score + Alpha_Omega_Alpha + Count_of_Poster_Presentation + US_or_Canadian_Applicant, data = test, family = "binomial")
+
 # Compute AUC for predicting Match_Status_Dichot with the model
-prob <- predict(mod_fit_three, newdata=data, type="response")
-pred <- prediction(prob, data$Match_Status)
+prob <- predict(model.binomial.significant2, newdata=test, type="response")  #Must use GLM model
+pred <- prediction(prob, test$Match_Status)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+#Export at this time
+#tiff(filename = "~/Dropbox/Nomogram/nomogram/results/matching_nomogram_area_under_the_curve.tiff.", bg = "white", res = 800) #Not working
 plot(perf)
-jpeg('area_under_the_curve.jpeg')
+#Export here 
+dev.off()
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
-auc  #81% AUC
-
-#Another AUC graph
-InformationValue::plotROC(y_act, predicted)
-InformationValue::AUROC(y_act, predicted)
+auc  #78% AUC
 
 #=================================================================
 # Use the TEST data on MULTIPLE MODELS.  BALLER!
@@ -441,10 +403,10 @@ trainControl <- trainControl(method="repeatedcv",
 
 algorithmList <- c('rf', 'adaboost', 'earth', 'xgbDART', 'svmRadial')
 
-set.seed(123456)
-models <- caretList(Match_Status ~ ., data=testData2, trControl=trainControl, methodList=algorithmList) 
-results <- resamples(models)
-summary(results)
+#set.seed(123456)
+#models <- caretList(Match_Status ~ ., data=testData2, trControl=trainControl, methodList=algorithmList) 
+#results <- resamples(models)
+#summary(results)
 
 # Box plots to compare models
 scales <- list(x=list(relation="free"), y=list(relation="free"))
@@ -471,8 +433,6 @@ stack_predicteds <- predict(stack.glm, newdata=test)
 head(stack_predicteds)
 
 
-
-#For Logistic regression we use the binomial family.  Creation of model using format of:  log(odds)=β0+β1∗x1+...+βn∗xn
 #mod_fit has all variables included
 colnames(data)
 data$Match_Status <- as.factor(data$Match_Status)
@@ -540,14 +500,15 @@ plot(varImp_mod_fit_two, main="Variable Importance")
 
 nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant, 
                                                       #lp.at = seq(-3,4,by=0.5),
-                                                      fun = plogis, 
-                                                      fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
-                                                      funlabel = "Chance of Matching in OBGYN, 2019", 
-                                                      lp =FALSE,
+                                  fun = plogis, 
+                                  fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
+                                  funlabel = "Chance of Matching in OBGYN, 2019", 
+                                  lp =FALSE,
                                                       #conf.int = c(0.1,0.7), 
-                                                      abbrev = F,
-                                                      minlength = 9)
+                                  abbrev = F,
+                                  minlength = 9)
 nomogramEx(nomo=nomo_from_model.binomial.significant,np=1,digit=2)  #Gives the polynomial formula
+#Export as Figure 1 by hand.  
 
 ################################################################
 #Data cleaning, Place nicer labels for the data
@@ -588,9 +549,41 @@ nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predict
                    which="Match_Status")
 print(nomo_from_model.binomial.significant)
 #legend.nomabbrev(nom.bi, which='Alpha_Omega_Alpha', x=.5, y=5)
+DescTools::BrierScore(model.binomial.significant2)
+
+#####https://rdrr.io/cran/caret/man/calibration.html  ####
+caret::calibration(Match_Status ~ USMLE_Step_1_Score + Alpha_Omega_Alpha + Count_of_Poster_Presentation + US_or_Canadian_Applicant, data = test) 
+
+calPlotData <- calibration(obs ~ lda + qda, data = testProbs)
+calPlotData
+
+xyplot(calPlotData, auto.key = list(columns = 2))
 
 #######################################################################################
 beepr::beep(sound = 4)
 rsconnect::setAccountInfo(name='mufflyt', token='D8846CA8B32E6A5EAEA94BFD02EEEA39', secret='dIXWOv+ud/z6dTPN2xOF9M4BKJtWKROc2cOsZS4U')
 DynNom::DynNom.lrm(model.binomial.significant, data, clevel = 0.95, m.summary = "formatted")
+
+#Decision Curve
+
+#https://lengyueyang.github.io/Research/Nomogram-rms.html
+#https://www.r-bloggers.com/evaluating-logistic-regression-models/
+#https://campus.datacamp.com/courses/multiple-and-logistic-regression/logistic-regression-4?ex=1
+#https://www.kaggle.com/sindhuee/r-caret-example
+#https://github.com/datasciencedojo/meetup/blob/master/intro_to_ml_with_r_and_caret/IntroToMachineLearning.R
+#https://www.machinelearningplus.com/machine-learning/caret-package/
+#https://www.machinelearningplus.com/machine-learning/feature-selection/
+#http://r-statistics.co/Logistic-Regression-With-R.html
+#http://r-statistics.co/Variable-Selection-and-Importance-With-R.html#7.%20Information%20value%20and%20Weight%20of%20evidence
+#https://www.datacamp.com/community/tutorials/feature-selection-R-boruta
+#https://www.meetup.com/data-science-dojo/events/239730653/
+#dev.off()  #https://towardsdatascience.com/visual-overview-of-the-data-frame-4c6186a69697
+
+#Pull clerkship grades by hand.  
+#Create column of CU students vs. universe
+#Create column of CU students who did not match vs. all students who did not match.  
+#If we could look at the clerkship honors, hp, pass would allow us to decrease our step 1 cut off or put at mean because need to review by hand.  
+#Hurts student if they do not get a grade at Stanford clerkship.  
+#Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
+#At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
 
