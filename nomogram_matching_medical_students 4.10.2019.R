@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -330,10 +330,6 @@ redun <- Hmisc::redun(~ Age + #Univariate SS  #Wald Test p=0.40, fair
              Count_of_Non_Peer_Reviewed_Online_Publication, data = train, type="adjusted", r2 = 0.3, pr=TRUE)    #only predictors
 print(redun, digits=3, long=TRUE)
 
-install.packages("rpart")
-library(rpart)
-rpart::
-
 #=================================================================
 #Look for Co-linearity with Variance Inflation Factors
 #=================================================================
@@ -645,13 +641,12 @@ full <- glm(Match_Status ~ white_non_white +
               Count_of_Peer_Reviewed_Online_Publication + 
               Misdemeanor_Conviction  + 
               Visa_Sponsorship_Needed +
-              #OBGYN_Grade +
               Medical_Degree, family=binomial, data = train)
 summary(full) #Variables white_non_whiteWhite, US_or_Canadian_ApplicantYes, USMLE_Step_1_Score, and Medical_DegreeMD were all significant at the conventional level
 
 #Begin stepwise selection procedure
 backward <- stepAIC(full, direction = "backward", trace=FALSE)
-step$anova #Dropped AOA, Count_of_Peer_Reviewed_Journal_Articles_Abstracts, Misdemeanor_Conviction, Gender, Count_of_Peer_Reviewed_Online_Publication, Medical_Education_or_Training_Interrupted, Visa_Sponsorship_Needed, Couples_Match, Military_Service_Obligation, Count_of_Poster_Presentation, Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published
+backward$anova #Dropped AOA, Count_of_Peer_Reviewed_Journal_Articles_Abstracts, Misdemeanor_Conviction, Gender, Count_of_Peer_Reviewed_Online_Publication, Medical_Education_or_Training_Interrupted, Visa_Sponsorship_Needed, Couples_Match, Military_Service_Obligation, Count_of_Poster_Presentation, Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published
 
 #Create model using stepAIC not backwards regression
 scope <- stepAIC(full, scope = list(lower = ~US_or_Canadian_Applicant + USMLE_Step_1_Score, upper = full), trace = FALSE)
@@ -663,13 +658,106 @@ step2$anova
 
 ###Best subset regression, Zhang book page 80, could not figure out dummy variables...
 
+###Recursive partitioning
+fit <- rpart::rpart(Match_Status ~ Age + #Univariate SS  #Wald Test p=0.40, fair
+                      Gender + #Univariate SS  #Wald Test p=0.30, good
+                      white_non_white + #Univariate SS,  # p=0.30
+                      Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                      USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                      #Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
+                      Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                      Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                      Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                      Count_of_Poster_Presentation +
+                      Medical_Education_or_Training_Interrupted + #Univariate SS
+                      Misdemeanor_Conviction + #Univariate SS
+                      US_or_Canadian_Applicant + #Univariate SS
+                      Count_of_Non_Peer_Reviewed_Online_Publication, data=train)
+
+fit2 <- rpart(Match_Status ~ Age + #Univariate SS  #Wald Test p=0.40, fair
+                Gender + #Univariate SS  #Wald Test p=0.30, good
+                white_non_white + #Univariate SS,  # p=0.30
+                Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                #Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
+                Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                Count_of_Poster_Presentation +
+                Medical_Education_or_Training_Interrupted + #Univariate SS
+                Misdemeanor_Conviction + #Univariate SS
+                US_or_Canadian_Applicant + #Univariate SS
+                Count_of_Non_Peer_Reviewed_Online_Publication, data = train,
+              parms = list(prior = c(.65,.35), split = "information"))
+
+fit3 <- rpart(Match_Status ~ Age + #Univariate SS  #Wald Test p=0.40, fair
+                Gender + #Univariate SS  #Wald Test p=0.30, good
+                white_non_white + #Univariate SS,  # p=0.30
+                Couples_Match + #Univariate SS, # Wald Test p=0.048, KEEP
+                USMLE_Step_1_Score + #Univariate SS, #Wald Test p=0.025
+                #Visa_Status_Expected + #Univariate SS, #Wald Testp=0.35
+                Alpha_Omega_Alpha + #Univariate SS, #Wald Test p=0.5
+                Gold_Humanism_Honor_Society + #Univariate SS, #Wald Test p=0.01
+                Visa_Sponsorship_Needed + #Univariate SS, #Wald Test p=0.20
+                Count_of_Poster_Presentation +
+                Medical_Education_or_Training_Interrupted + #Univariate SS
+                Misdemeanor_Conviction + #Univariate SS
+                US_or_Canadian_Applicant + #Univariate SS
+                Count_of_Non_Peer_Reviewed_Online_Publication, data = train,
+              control = rpart.control(cp = 0.05))
+par(mfrow = c(1,2), xpd = NA) # otherwise on some devices the text is clipped
+plot(fit)
+text(fit, use.n = TRUE)
+plot(fit2)
+text(fit2, use.n = TRUE)
+
+#=================================================================
+#  Residuals and regression diagnostics
+#=================================================================
+scope.model <- glm(Match_Status ~ white_non_white + Age + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Medical_Degree, family = binomial, train)
+car::residualPlots(scope.model) #All variables are linear except age and Step 1 scores.  Therefore we need to check the trend between predictors and age or Step 1 score.  Better than looking is checking the Test state and they are not significant suggesting a properly specified model.  Zhang book page 90.  
+
+marginalModelPlots(scope.model)
+
+#Check for outliers
+outlierTest(scope.model)  #There are no outliers as judged by Bonferonni p.  
+
+#Check for leverage
+influenceIndexPlot(scope.model, id.n=3) #Identifies observations that are the farthest away from the mean.  Look at the largest studentized residuals for observations that are most likely to be outliers.  
+
+#Check for influence of the outliers
+influencePlot(scope.model, col="red", id.n=3)
+#Identify the change of coefficient by removing these influential observations
+scope.model572 <- update(scope.model, subset= c(-572))
+compareCoefs(scope.model, scope.model572) #Coefficients are changed minimally so that observation 572 is not influential
+
+#Identify the change of coefficient by removing these influential observations
+scope.model375 <- update(scope.model, subset= c(-375))
+compareCoefs(scope.model, scope.model375) #Coefficients are changed minimally so that observation 572 is not influential
+
 #=================================================================
 #  Propensity Score, Zhang book page 97 #Matching methods balance the treatment group with the control group so that they are more identical.
 #=================================================================
 
 #YOU NEED TO IMPUTE THE DATA BY HAND USING ZHANG BOOK page 43 BEFORE DOING BELOW
-m.out <- matchit(Matching_Status ~ ., method = "nearest", discard = "both", data=all_data)
+#all_data.na.omit <- na.omit(all_data)
+#sum(is.na(all_data.na.omit))
+#str(all_data.na.omit)
+#class(all_data.na.omit)
+#all_data.na.omit <- as.data.frame(all_data.na.omit)
 
+#library(MatchIt)
+#m.out <- matchit(Match_Status ~ white_non_white, data=all_data.na.omit)
+
+#Zhang book, page 51
+nrow(all_data)
+sum(is.na(all_data))
+imp <- mice::mice(all_data, seed=123456)
+imp #5 datasets were imputed
+head(complete(imp, action = 4))
+
+#Now run stats on each of the 5 database
+ttest <- with(imp.t.test(BLS.miss))
 
 #=================================================================
 #  Factor Selection
@@ -681,17 +769,26 @@ train_pca <- preProcess(select(all_data, - Match_Status),
 train_pca
 train_pca$method
 train_pca$rotation
-#PCA chose Count_of_Other_Articles and Count_of_Peer_Reviewed_Online_Publication
+#PCA needed 8 components to capture 95% of the variance:
+# [1] "USMLE_Step_1_Score"                                                    
+# [2] "Count_of_Oral_Presentation"                                            
+# [3] "Count_of_Other_Articles"                                               
+# [4] "Count_of_Peer_Reviewed_Journal_Articles_Abstracts"                     
+# [5] "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published"
+# [6] "Count_of_Peer_Reviewed_Online_Publication"                             
+# [7] "Count_of_Poster_Presentation"                                          
+# [8] "Age"  
 
 #Method 2: Recursive Feature Elimination
 options(warn=-1)
-subsets <- c(2:24)
+colnames(all_data)
+subsets <- c(2:31)
 ctrl <- rfeControl(functions = rfFuncs,
                    method = "repeatedcv",
                    repeats = 2,
                    verbose = FALSE)
 
-lmProfile <- rfe(x=train[, 2:24], y=train$Match_Status,
+lmProfile <- rfe(x=train[, 2:31], y=train$Match_Status,
                  sizes = subsets,
                  rfeControl = ctrl)
 lmProfile  
@@ -709,12 +806,26 @@ roughFixMod <- TentativeRoughFix(boruta_output)  # Do a tentative rough fix
 boruta_signif <- getSelectedAttributes(roughFixMod)
 print(boruta_signif)
 
+# [1] "Medical_Education_or_Training_Interrupted" "ACLS"                                     
+# [3] "PALS"                                      "Citizenship"                              
+# [5] "Gender"                                    "US_or_Canadian_Applicant"                 
+# [7] "Visa_Sponsorship_Needed"                   "USMLE_Step_1_Score"                       
+# [9] "Count_of_Poster_Presentation"              "Age"                                      
+# [11] "BLS"                                       "Gold_Humanism_Honor_Society"   
+
 # Variable Importance Scores
 imps <- attStats(roughFixMod)
 imps2 = imps[imps$decision != 'Rejected', c('meanImp', 'decision')]
 head(imps2[order(-imps2$meanImp), ])  # descending sort
 plot(boruta_output, cex.axis=0.35, las=2, xlab="", main="Variable Importance")  # Plot variable importance
-#Boruta chose Age, AOA, USMLE Step 1 Score, US or Canadian Applicant, Count of Poster presentations, White or non-White
+#Boruta chose:
+# meanImp  decision
+# USMLE_Step_1_Score       20.265448 Confirmed
+# Age                      17.253973 Confirmed
+# Citizenship              15.657170 Confirmed
+# US_or_Canadian_Applicant 14.254795 Confirmed
+# PALS                     10.006216 Confirmed
+# Visa_Sponsorship_Needed   6.898714 Confirmed
 
 #Method 4:  Variable important from ML algorithm 
 modelLookup('earth')
@@ -940,7 +1051,7 @@ nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant
                                                       #lp.at = seq(-3,4,by=0.5),
                                                       fun = plogis, 
                                                       fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
-                                                      funlabel = "Chance of Matching in OBGYN, 2019", 
+                                                      funlabel = "Chance of Matching in OBGYN", 
                                                       lp =FALSE,
                                                       #conf.int = c(0.1,0.7), 
                                                       abbrev = F,
