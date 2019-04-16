@@ -1,7 +1,7 @@
 #Muffly, Liss, Alston, Raffaelli, Jelovsek  ###DRAFT###
 
 ##################################################################
-#Objective:  We sought to construct and validate a model that predict a medical students chances of matching into an obstetrics and gynecology residency in 2019.  
+#Objective:  We sought to construct and validate a model that predict a medical students chances of matching into an obstetrics and gynecology residency.  
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
@@ -605,7 +605,7 @@ str(all_data)
 #                                      list = FALSE)
 
 #Split the data so that we cna run a model and find best factors.  
-train <- filter(all_data, Year == c(2015, 2016, 2017))  #Train on years 2015, 2016, 2017
+train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
 nrow(train)
 test <- filter(all_data, Year == c(2018))
 nrow(test)
