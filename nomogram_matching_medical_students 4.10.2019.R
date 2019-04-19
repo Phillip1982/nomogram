@@ -470,6 +470,7 @@ all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_mutate_83.rds")
 glimpse(all_data)
 dim(all_data)
 colnames(all_data)
+all_data$Match_Status_Dichot
 
 ################################################################
 # Place nicer labels for the data
@@ -497,9 +498,10 @@ label(all_data$Other_Service_Obligation) <- 'Other Service Obligation'
 #label(all_data$Med_school_condensed) <- 'Medical School Condensed' 
 label(all_data$white_non_white) <- 'Race' 
 label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
-label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
+label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
 label(all_data$Match_Status_Dichot) <- 'Matching Status'
 label(all_data) #Check labels for the data set
+all_data$Match_Status_Dichot
 ####
 
 
@@ -508,25 +510,27 @@ label(all_data) #Check labels for the data set
 dev.off()
 par("mar")
 par(mar=c(1,1,1,1))
-all_data_no_na <- na.delete(all_data)
-sum(is.na(all_data_no_na))
-all_data_no_na$Match_Status_Dichot <- as.numeric(all_data_no_na$Match_Status_Dichot)  #Fucking outcome must be numeric
+all_data$Match_Status_Dichot <- as.numeric(all_data$Match_Status_Dichot - 1)  
+all_data$Match_Status_Dichot#Fucking outcome must be numeric
 v <- c('Match_Status_Dichot', 'Age', 'Gender', 'Alpha_Omega_Alpha','USMLE_Step_1_Score', 'Couples_Match', 'Medical_Education_or_Training_Interrupted', 'Misdemeanor_Conviction', 'US_or_Canadian_Applicant', 'Gold_Humanism_Honor_Society',  'Military_Service_Obligation', 'Count_of_Oral_Presentation', 'Count_of_Peer_Reviewed_Book_Chapter', 'Count_of_Poster_Presentation', 'white_non_white','Count_of_Peer_Reviewed_Journal_Articles_Abstracts', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published')
-t3 <- all_data_no_na[,v]
+t3 <- all_data[,v]
 
 dd <- datadist(t3)
 options(datadist='dd')
 s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
-plot(s, main= "", subtitles = FALSE)
-class(t3$Match_Status_Dichot)
+plot(s, main= "Univariate", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE)
 
 #####
-install.packages("ggplot2")
+colnames(t3)
+t3$Match_Status_Dichot
+t3_clean <- na.omit(t3)
+sum(is.na(t3_clean))
+#install.packages("ggplot2")
 library(ggplot2)
 b <- scale_size_discrete(range=c(0.1, 0.85))
 y1 <- ylab(NULL)
-p1 <- ggplot(t3, aes(x=Age, y= Match_Status_Dichot)) +
-  Hmisc::histSpikeg(Match_Status_Dichot ~ Age, lowess=T, data=t3) + 
+p1 <- ggplot(t3, aes(x=Age, y= Match_Status_Dichot, color = Gender)) +
+  Hmisc::histSpikeg(Match_Status_Dichot ~ Age + Gender, lowess=T, data=t3_clean) + 
   ylim (0,1) + y1
 plot(p1)
 
