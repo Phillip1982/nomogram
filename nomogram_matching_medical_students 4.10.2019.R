@@ -510,7 +510,9 @@ all_data$Match_Status_Dichot
 dev.off()
 par("mar")
 par(mar=c(1,1,1,1))
-all_data$Match_Status_Dichot <- as.numeric(all_data$Match_Status_Dichot - 1)  
+
+all_data$Match_Status_Dichot <- as.numeric(all_data$Match_Status_Dichot)
+all_data$Match_Status_Dichot <- (all_data$Match_Status_Dichot - 1)
 all_data$Match_Status_Dichot#Fucking outcome must be numeric
 v <- c('Match_Status_Dichot', 'Age', 'Gender', 'Alpha_Omega_Alpha','USMLE_Step_1_Score', 'Couples_Match', 'Medical_Education_or_Training_Interrupted', 'Misdemeanor_Conviction', 'US_or_Canadian_Applicant', 'Gold_Humanism_Honor_Society',  'Military_Service_Obligation', 'Count_of_Oral_Presentation', 'Count_of_Peer_Reviewed_Book_Chapter', 'Count_of_Poster_Presentation', 'white_non_white','Count_of_Peer_Reviewed_Journal_Articles_Abstracts', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published')
 t3 <- all_data[,v]
@@ -533,6 +535,39 @@ p1 <- ggplot(t3, aes(x=Age, y= Match_Status_Dichot, color = Gender)) +
   Hmisc::histSpikeg(Match_Status_Dichot ~ Age + Gender, lowess=T, data=t3_clean) + 
   ylim (0,1) + y1
 plot(p1)
+
+###Original 
+colnames(data)
+features <-colnames(data)
+features_rel<-features [2:24]   
+
+for( i in features_rel ){
+  temp_plot<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
+    ggtitle(paste0("Match Statistics for 2019 OBGYN: \n",i)) + 
+    guides(fill = guide_legend(nrow = 4, byrow = T) + 
+             geom_text (aes(label = y), position = position_stack(vjust = 0.5), size = 10, angle = 45, check_overlap = TRUE) + 
+             geom_label(fontface = "bold"))
+  print(temp_plot) 
+  ggsave(temp_plot, file=paste0("plot_", i,".png"), width = 14, height = 10, units = "cm", dpi = 500,  bg = "transparent")
+}
+print(temp_plot)
+
+################################################################
+####  Trying Hmisc::histSpikeg as a loop
+colnames(t3)
+features <-colnames(t3)
+features
+features_rel<-features [2:17]   
+
+b <- scale_size_discrete(range=c(0.1, 0.85))
+y1 <- ylab(NULL)
+for( i in features_rel ){
+  Hmisc_plot<-ggplot(data = t3, aes_string(x=t3$Age, y = "Match_Status_Dichot")) + 
+    Hmisc::histSpikeg(Match_Status_Dichot ~ i, lowess=T, data=t3) + 
+    ylim (0,1) + y1
+  plot(Hmisc_plot) }
+    
+
 
 #Impute data in so there are no NAs
 all_data_pre.process <- caret::preProcess(all_data, method = "bagImpute") # Now, impute!
