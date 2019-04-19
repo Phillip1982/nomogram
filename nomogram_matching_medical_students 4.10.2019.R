@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -465,10 +465,70 @@ dim(all_data) #3,441 applicants
 ################################################################
 
 
-#download.file("https://www.dropbox.com/s/gga48i3lu2panh6/all_years_select_80.rds?raw=1",destfile=paste0("all_years_select_80.rds"), method = "auto", cacheOK = TRUE)
-all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_select_82.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
+download.file("https://www.dropbox.com/s/d4dk1v73d92pjwz/all_years_mutate_83.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_mutate_83.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
 glimpse(all_data)
 dim(all_data)
+colnames(all_data)
+
+################################################################
+# Place nicer labels for the data
+#label(data$Self_Identify)    <- 'Race/Ethnicity'
+label(all_data$Age)    <- 'Age'
+units(all_data$Age) <- 'years'
+label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
+label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
+label(all_data$Gender) <- 'Gender'
+label(all_data$Couples_Match) <- 'Couples Matching'
+label(all_data$Visa_Status_Expected) <- 'Expected Visa Status'
+label(all_data$Medical_School_Type) <- 'Medical School Type'
+label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
+#label(all_data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
+#label(all_data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
+#label(all_data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
+label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
+label(all_data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
+label(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
+label(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
+label(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
+label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
+label(all_data$Other_Service_Obligation) <- 'Other Service Obligation'
+#label(all_data$Med_school_condensed) <- 'Medical School Condensed' 
+label(all_data$white_non_white) <- 'Race' 
+label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
+label(all_data$Match_Status_Dichot) <- 'Matching Status'
+label(all_data) #Check labels for the data set
+####
+
+
+####
+#Look at the data in one graph.  Nice.  Page 292 in Harrell's book
+dev.off()
+par("mar")
+par(mar=c(1,1,1,1))
+all_data_no_na <- na.delete(all_data)
+sum(is.na(all_data_no_na))
+all_data_no_na$Match_Status_Dichot <- as.numeric(all_data_no_na$Match_Status_Dichot)  #Fucking outcome must be numeric
+v <- c('Match_Status_Dichot', 'Age', 'Gender', 'Alpha_Omega_Alpha','USMLE_Step_1_Score', 'Couples_Match', 'Medical_Education_or_Training_Interrupted', 'Misdemeanor_Conviction', 'US_or_Canadian_Applicant', 'Gold_Humanism_Honor_Society',  'Military_Service_Obligation', 'Count_of_Oral_Presentation', 'Count_of_Peer_Reviewed_Book_Chapter', 'Count_of_Poster_Presentation', 'white_non_white','Count_of_Peer_Reviewed_Journal_Articles_Abstracts', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published')
+t3 <- all_data_no_na[,v]
+
+dd <- datadist(t3)
+options(datadist='dd')
+s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
+plot(s, main= "", subtitles = FALSE)
+class(t3$Match_Status_Dichot)
+
+#####
+install.packages("ggplot2")
+library(ggplot2)
+b <- scale_size_discrete(range=c(0.1, 0.85))
+y1 <- ylab(NULL)
+p1 <- ggplot(t3, aes(x=Age, y= Match_Status_Dichot)) +
+  Hmisc::histSpikeg(Match_Status_Dichot ~ Age, lowess=T, data=t3) + 
+  ylim (0,1) + y1
+plot(p1)
 
 #Impute data in so there are no NAs
 all_data_pre.process <- caret::preProcess(all_data, method = "bagImpute") # Now, impute!
@@ -538,7 +598,7 @@ prop.table(table(all_data$Match_Status)) #Percentage of students who matched
 ####  Plot variable characteristics
 colnames(all_data)
 features <-colnames(all_data)
-features_rel<-features [2:24]   
+features_rel<-features [2:31]   
 
 for( i in features_rel ){
   temp_plot<-ggplot(data = all_data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
@@ -642,15 +702,26 @@ full <- glm(Match_Status ~ white_non_white +
               Misdemeanor_Conviction  + 
               Visa_Sponsorship_Needed +
               Medical_Degree, family=binomial, data = train)
-summary(full) #Variables white_non_whiteWhite, US_or_Canadian_ApplicantYes, USMLE_Step_1_Score, and Medical_DegreeMD were all significant at the conventional level
+summary(full) 
+#Final model: white_non_whiteWhite, US_or_Canadian_ApplicantYes, USMLE_Step_1_Score, and Medical_DegreeMD were all significant at the conventional level
 
 #Begin stepwise selection procedure
 backward <- stepAIC(full, direction = "backward", trace=FALSE)
-backward$anova #Dropped AOA, Count_of_Peer_Reviewed_Journal_Articles_Abstracts, Misdemeanor_Conviction, Gender, Count_of_Peer_Reviewed_Online_Publication, Medical_Education_or_Training_Interrupted, Visa_Sponsorship_Needed, Couples_Match, Military_Service_Obligation, Count_of_Poster_Presentation, Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published
+backward$anova 
+# Final Model:
+#   Match_Status ~ white_non_white + Age + Gender + Couples_Match + 
+#   US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + 
+#   Gold_Humanism_Honor_Society + Military_Service_Obligation + 
+#   USMLE_Step_1_Score + Visa_Sponsorship_Needed + Medical_Degree
 
 #Create model using stepAIC not backwards regression
 scope <- stepAIC(full, scope = list(lower = ~US_or_Canadian_Applicant + USMLE_Step_1_Score, upper = full), trace = FALSE)
-scope$anova #shows the final model as Match_Status ~ white_non_white + Age + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Medical_Degree
+scope$anova 
+# Final Model:
+#   Match_Status ~ white_non_white + Age + Gender + Couples_Match + 
+#   US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + 
+#   Gold_Humanism_Honor_Society + Military_Service_Obligation + 
+#   USMLE_Step_1_Score + Visa_Sponsorship_Needed + Medical_Degree
 
 step2 <- stepAIC(full, ~.^2 +I(scale(Age)^2) + I(scale(USMLE_Step_1_Score)^2) + I(scale(Count_of_Oral_Presentation)^2) + I(scale(Count_of_Peer_Reviewed_Book_Chapter)^2), trace= FALSE) #Looks for interactions between numeric variables of Age, Step 1 score, Count of oral presentations, and count of peer_review_book chapters.
 step2$anova
@@ -714,8 +785,23 @@ text(fit2, use.n = TRUE)
 #=================================================================
 #  Residuals and regression diagnostics
 #=================================================================
-scope.model <- glm(Match_Status ~ white_non_white + Age + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + USMLE_Step_1_Score + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Medical_Degree, family = binomial, train)
+scope.model <- glm(Match_Status ~ white_non_white + Age + Gender + Couples_Match +
+                       US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted +
+                       Gold_Humanism_Honor_Society + Military_Service_Obligation +
+                       USMLE_Step_1_Score + Visa_Sponsorship_Needed + Medical_Degree, family = binomial, train)
+
+
+
 car::residualPlots(scope.model) #All variables are linear except age and Step 1 scores.  Therefore we need to check the trend between predictors and age or Step 1 score.  Better than looking is checking the Test state and they are not significant suggesting a properly specified model.  Zhang book page 90.  
+
+                                      # Test stat Pr(>|Test stat|)
+# white_non_white                                               
+# Age                                    0.0307           0.8609
+# Gold_Humanism_Honor_Society                                   
+# USMLE_Step_1_Score                     2.0060           0.1567
+# Count_of_Oral_Presentation             0.0761           0.7826
+# Count_of_Peer_Reviewed_Book_Chapter    0.2740           0.6007
+# Medical_Degree 
 
 marginalModelPlots(scope.model)
 
@@ -990,7 +1076,7 @@ install.packages("rpart")
 library(rpart)
 rpart::
   
-  #=================================================================
+#=================================================================
 #Look for Co-linearity with Variance Inflation Factors
 #=================================================================
 rms::vif(model.binomial.significant) #Should be <4
@@ -1018,7 +1104,7 @@ imputed.data <- predict(pre.process, train)
 sum(is.na(imputed.data))
 testData2 <- predict(pre.process, test)  
 
-    #=================================================================
+#=================================================================
 # Predict and Check Confusion Matrix
 #=================================================================
 predicted <- predict(model_mars, testData2)
@@ -1058,35 +1144,7 @@ nomo_from_model.binomial.significant <- rms::nomogram(model.binomial.significant
                                                       minlength = 9)
 nomogramEx(nomo=nomo_from_model.binomial.significant,np=1,digit=2)  #Gives the polynomial formula
 
-################################################################
-# Place nicer labels for the data
-#label(data$Self_Identify)    <- 'Race/Ethnicity'
-label(data$Age)    <- 'Age'
-label(data$Alpha_Omega_Alpha) <- 'AOA Member'
-label(data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
-label(data$Gender) <- 'Gender'
-label(data$Couples_Match) <- 'Couples Matching'
-label(data$Visa_Status_Expected) <- 'Expected Visa Status'
-label(data$Medical_School_Type) <- 'Medical School Type'
-label(data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
-label(data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
-#label(data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
-#label(data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
-#label(data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
-label(data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
-label(data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
-label(data$Military_Service_Obligation) <- 'Military Service Obligation'
-label(data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
-label(data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
-label(data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
-label(data$Other_Service_Obligation) <- 'Other Service Obligation'
-#label(data$Med_school_condensed) <- 'Medical School Condensed' 
-label(data$white_non_white) <- 'Race' 
-label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
-label(data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Journal Articles Abstracts Other than Published'
-label(data) #Check labels for the data set
 
-#dev.off()  #Run this until null device = 1
 nomo_final <- plot(nomo_from_model.binomial.significant, lplabel="Linear Predictor",
                    cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
@@ -1139,4 +1197,26 @@ beepr::beep(sound = 4)
 #Hurts student if they do not get a grade at Stanford clerkship.  
 #Academic score from CU could be a proxy for clerkship and sub-i grades.  These people were reviewed by Meredith to determine if they should get a CU interview.  All these people have a step 1 score of >233.  National average was 229 because it is due to time.  This is Perfect score is 10 for A or Honors.  
 #At APGO/CREOG talk about removing step 1 score and then you can't do any sort of cut off.  
+
+
+#Modifiable Factors 
+
+model.binomial.significant <- rms::lrm(Match_Status ~ 
+                                         
+                                         Alpha_Omega_Alpha + 
+                                         Gold_Humanism_Honor_Society + 
+                                         #Military_Service_Obligation + 
+                                         USMLE_Step_1_Score + 
+                                         #Military_Service_Obligation + 
+                                         Count_of_Poster_Presentation + 
+                                         Count_of_Oral_Presentation + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                         Count_of_Peer_Reviewed_Book_Chapter + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                         Count_of_Peer_Reviewed_Online_Publication + 
+                                         #Misdemeanor_Conviction  + 
+                                         #Visa_Sponsorship_Needed +
+                                         #OBGYN_Grade +
+                                         #Medical_Degree,
+                                       data = train, x=TRUE, y=TRUE)
 
