@@ -282,6 +282,8 @@ model.binomial.significant <- rms::lrm(Match_Status ~
 print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
 fastbw(model.binomial.significant) #stepdown by p-values, AIC
 
+plot(summary(model.binomial.significant))
+
 model2 <- rms::lrm(Match_Status ~ Age +
                      white_non_white +
                      USMLE_Step_1_Score + 
@@ -346,6 +348,9 @@ arsenal::write2html(oddsratios, ("oddratios_table2.html"), total=FALSE, title = 
 
 #Write to Table 2 word
 arsenal::write2word(oddsratios, paste0("oddsratios_table2.doc"))
+
+#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
+
 
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
@@ -504,6 +509,8 @@ label(all_data) #Check labels for the data set
 all_data$Match_Status_Dichot
 ####
 
+Hmisc::describe(all_data) # A little better than summary.  Gives proportions for categorical variables. Amen!
+
 
 ####
 #Look at the data in one graph.  Nice.  Page 292 in Harrell's book
@@ -520,7 +527,8 @@ t3 <- all_data[,v]
 dd <- datadist(t3)
 options(datadist='dd')
 s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
-plot(s, main= "Univariate", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE)
+dev.off()
+plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 
 #####
 colnames(t3)
@@ -553,23 +561,55 @@ for( i in features_rel ){
 print(temp_plot)
 
 ################################################################
-####  Trying Hmisc::histSpikeg as a loop
-colnames(t3)
-features <-colnames(t3)
-features
-features_rel<-features [2:17]   
+#Look at Missing Data
+#Page 302 of Harrell book
+na.patterns <- Hmisc::naclus(all_data)
+na.patterns
+require(rpart)
 
-b <- scale_size_discrete(range=c(0.1, 0.85))
-y1 <- ylab(NULL)
-for( i in features_rel ){
-  Hmisc_plot<-ggplot(data = t3, aes_string(x=t3$Age, y = "Match_Status_Dichot")) + 
-    Hmisc::histSpikeg(Match_Status_Dichot ~ i, lowess=T, data=t3) + 
-    ylim (0,1) + y1
-  plot(Hmisc_plot) }
-    
+who.na <- rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
 
+naplot(na.patterns, 'na per var')
+plot(who.na, margin = 0.1); test(who.na)
+plot(na.patterns) #Cool!! this shows who has the most missing data.  
 
+m <- lrm(is.na(age) ~ sex * pclass + survived + sibsp + parch, data=t3) #Wald statistics for is.na)age.  Shows that nonsurviving passengers are no more likely to have age missing.  
+anova(m)
+
+################################################################
 #Impute data in so there are no NAs
+#Page 55 of Harrell book
+Hmisc::aregImpute
+
+a <- aregImpute(~Gender + 
+                  white_non_white + 
+                  Couples_Match + 
+                  USMLE_Step_1_Score + 
+                  Alpha_Omega_Alpha + 
+                  Gold_Humanism_Honor_Society + 
+                  Visa_Sponsorship_Needed + 
+                  Count_of_Poster_Presentation +
+                  Medical_Education_or_Training_Interrupted + 
+                  Misdemeanor_Conviction + 
+                  US_or_Canadian_Applicant + 
+                  Count_of_Non_Peer_Reviewed_Online_Publication, data = all_data, n.impute = 5)
+a
+
+f <- fit.mult.impute(Match_Status_Dichot ~ Age + Gender + 
+                       white_non_white + 
+                       Couples_Match + 
+                       USMLE_Step_1_Score + 
+                       Alpha_Omega_Alpha + 
+                       Gold_Humanism_Honor_Society + 
+                       Visa_Sponsorship_Needed + 
+                       Count_of_Poster_Presentation +
+                       Medical_Education_or_Training_Interrupted + 
+                       Misdemeanor_Conviction + 
+                       US_or_Canadian_Applicant + 
+                       Count_of_Non_Peer_Reviewed_Online_Publication, lrm, a, data=all_data)
+
+
+
 all_data_pre.process <- caret::preProcess(all_data, method = "bagImpute") # Now, impute!
 glimpse(all_data)
 dim(all_data)
@@ -762,8 +802,8 @@ scope$anova
 #   Gold_Humanism_Honor_Society + Military_Service_Obligation + 
 #   USMLE_Step_1_Score + Visa_Sponsorship_Needed + Medical_Degree
 
-step2 <- stepAIC(full, ~.^2 +I(scale(Age)^2) + I(scale(USMLE_Step_1_Score)^2) + I(scale(Count_of_Oral_Presentation)^2) + I(scale(Count_of_Peer_Reviewed_Book_Chapter)^2), trace= FALSE) #Looks for interactions between numeric variables of Age, Step 1 score, Count of oral presentations, and count of peer_review_book chapters.
-step2$anova
+#step2 <- stepAIC(full, ~.^2 +I(scale(Age)^2) + I(scale(USMLE_Step_1_Score)^2) + I(scale(Count_of_Oral_Presentation)^2) + I(scale(Count_of_Peer_Reviewed_Book_Chapter)^2), trace= FALSE) #Looks for interactions between numeric variables of Age, Step 1 score, Count of oral presentations, and count of peer_review_book chapters.
+#step2$anova
 #Interactions between Gender and USMLE Step 1 remain in the model + Gender:USMLE_Step_1_Score, + Gender:Count_of_Peer_Reviewed_Journal_Articles_Abstracts,  + Age:Count_of_Peer_Reviewed_Online_Publication, + Gender:Count_of_Peer_Reviewed_Online_Publication, + white_non_white:Military_Service_Obligation, + Gold_Humanism_Honor_Society:Count_of_Peer_Reviewed_Online_Publication, + Gender:Gold_Humanism_Honor_Society, + Age:Count_of_Poster_Presentation, + Medical_Education_or_Training_Interrupted:Count_of_Peer_Reviewed_Book_Chapter,  + Count_of_Peer_Reviewed_Online_Publication:Medical_Degree, + white_non_white:Medical_Degree, + Age:US_or_Canadian_Applicant, + US_or_Canadian_Applicant:Medical_Education_or_Training_Interrupted, + Age:Medical_Degree
 
 ###Best subset regression, Zhang book page 80, could not figure out dummy variables...
@@ -1041,6 +1081,12 @@ model.binomial.significant <- rms::lrm(Match_Status ~
                                        data = train, x=TRUE, y=TRUE)
 
 print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
+anova(model.binomial.significant) #Harrell book page 298, The Wald Anova indicates especially strong age, US or Canadian applicants, USMLE score effects.  
+
+f <- update(model.binomial.significant, x=TRUE, y=TRUE)
+validate(model.binomial.significant, B=200)
+
+
 fastbw(model.binomial.significant) #stepdown by p-values, AIC
 
 model2 <- rms::lrm(Match_Status ~ Age +
@@ -1252,10 +1298,50 @@ model.binomial.significant <- rms::lrm(Match_Status ~
                                          Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
                                          Count_of_Peer_Reviewed_Book_Chapter + 
                                          Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                                         Count_of_Peer_Reviewed_Online_Publication + 
+                                         Count_of_Peer_Reviewed_Online_Publication,
                                          #Misdemeanor_Conviction  + 
                                          #Visa_Sponsorship_Needed +
                                          #OBGYN_Grade +
                                          #Medical_Degree,
-                                       data = train, x=TRUE, y=TRUE)
+                                       data = all_data, x=TRUE, y=TRUE)
 
+
+#lrm model with relaxed splines for the numerical values
+test <- rms::lrm(Match_Status ~ 
+                                         white_non_white + 
+                                         rcs(Age, 5) + 
+                                         Gender + 
+                                         Couples_Match + 
+                                         #Expected_Visa_Status_Dichotomized + 
+                                         US_or_Canadian_Applicant + 
+                                         #Medical_School_Type + 
+                                         Medical_Education_or_Training_Interrupted + 
+                                         Misdemeanor_Conviction + 
+                                         Alpha_Omega_Alpha + 
+                                         Gold_Humanism_Honor_Society + 
+                                         Military_Service_Obligation + 
+                                         rcs(USMLE_Step_1_Score,5) + 
+                                         Military_Service_Obligation + 
+                                         Count_of_Poster_Presentation + 
+                                         Count_of_Oral_Presentation + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                         Count_of_Peer_Reviewed_Book_Chapter + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                         Count_of_Peer_Reviewed_Online_Publication + 
+                                         Misdemeanor_Conviction  + 
+                                         Visa_Sponsorship_Needed +
+                                         #OBGYN_Grade +
+                                         Medical_Degree,
+                                       data = all_data, x=TRUE, y=TRUE)
+plot(anova(test))
+
+all_data<- as.data.frame(all_data)
+
+dd <- datadist(all_data); options(datadist='dd')
+ggplot(Predict(model.binomial.significant), sepdiscrete = 'vertical', vnames = 'names',
+       rdata = all_data, 
+       histSpike.opts = list(frac = function(f) 0.1*f/max(f)))
+
+
+
+plot(summary(model.binomial.significant), log = TRUE)
