@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -465,7 +465,29 @@ dim(all_data) #3,441 applicants
 ################################################################
 ################################################################
 ################################################################
-
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
 
 download.file("https://www.dropbox.com/s/d4dk1v73d92pjwz/all_years_mutate_83.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
 all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_mutate_83.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
@@ -502,12 +524,12 @@ label(all_data$white_non_white) <- 'Race'
 label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
 label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
 label(all_data$Match_Status_Dichot) <- 'Matching Status'
+label(all_data$Match_Status) <- 'Matching Status'
 label(all_data) #Check labels for the data set
 all_data$Match_Status_Dichot
 ####
 
 Hmisc::describe(all_data) # A little better than summary.  Gives proportions for categorical variables. Amen!
-
 
 ####
 #Look at the data in one graph.  Nice.  Page 292 in Harrell's book
@@ -521,11 +543,17 @@ all_data$Match_Status_Dichot#Fucking outcome must be numeric
 v <- c('Match_Status_Dichot', 'Age', 'Gender', 'Alpha_Omega_Alpha','USMLE_Step_1_Score', 'Couples_Match', 'Medical_Education_or_Training_Interrupted', 'Misdemeanor_Conviction', 'US_or_Canadian_Applicant', 'Gold_Humanism_Honor_Society',  'Military_Service_Obligation', 'Count_of_Oral_Presentation', 'Count_of_Peer_Reviewed_Book_Chapter', 'Count_of_Poster_Presentation', 'white_non_white','Count_of_Peer_Reviewed_Journal_Articles_Abstracts', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published')
 t3 <- all_data[,v]
 
+install.packages("zoom")
+library(zoom)
+
 dd <- datadist(t3)
 options(datadist='dd')
 s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
-dev.off()
+dev.off()  #How to save plots as images like PDFs or TIFFs
+tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
+#zoom::zm()
+dev.off()
 
 #####
 colnames(t3)
@@ -541,21 +569,43 @@ p1 <- ggplot(t3, aes(x=Age, y= Match_Status_Dichot, color = Gender)) +
   ylim (0,1) + y1
 plot(p1)
 
-###Original 
-colnames(data)
-features <-colnames(data)
-features_rel<-features [2:24]   
+# ###Original 
+# colnames(data)
+# features <-colnames(data)
+# features_rel<-features [2:24]   
+# 
+# for( i in features_rel ){
+#   temp_plot<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
+#     ggtitle(paste0("Match Statistics for 2019 OBGYN: \n",i)) + 
+#     guides(fill = guide_legend(nrow = 4, byrow = T) + 
+#              geom_text (aes(label = y), position = position_stack(vjust = 0.5), size = 10, angle = 45, check_overlap = TRUE) + 
+#              geom_label(fontface = "bold"))
+#   print(temp_plot) 
+#   ggsave(temp_plot, file=paste0("plot_", i,".png"), width = 14, height = 10, units = "cm", dpi = 500,  bg = "transparent")
+# }
+# print(temp_plot)
 
-for( i in features_rel ){
-  temp_plot<-ggplot(data = data, aes_string(x=i,fill="Match_Status")) + geom_bar(alpha=0.8,colour='black', show.legend = TRUE, stat = "count") + theme(legend.position = "top") + 
-    ggtitle(paste0("Match Statistics for 2019 OBGYN: \n",i)) + 
-    guides(fill = guide_legend(nrow = 4, byrow = T) + 
-             geom_text (aes(label = y), position = position_stack(vjust = 0.5), size = 10, angle = 45, check_overlap = TRUE) + 
-             geom_label(fontface = "bold"))
-  print(temp_plot) 
-  ggsave(temp_plot, file=paste0("plot_", i,".png"), width = 14, height = 10, units = "cm", dpi = 500,  bg = "transparent")
-}
-print(temp_plot)
+# Best Univariate evaluations
+#blocg.datascienceheroes.com
+# install.packages("funModeling")
+library(funModeling)
+df_status(all_data)
+nrow(all_data)
+
+#Distributions for nominal variables
+funModeling::freq(all_data)
+funModeling::freq(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results")
+
+#Distributions for numerical data
+funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results")
+
+#Summary stats of the numerical data showing means, medians, skew
+funModeling::profiling_num(all_data)
+
+dev.off ()
+a <- colnames(all_data)
+cross_plot(data=all_data, input=a, target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE
+
 
 ################################################################
 #Look at Missing Data
