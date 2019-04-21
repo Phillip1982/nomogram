@@ -349,9 +349,6 @@ arsenal::write2html(oddsratios, ("oddratios_table2.html"), total=FALSE, title = 
 #Write to Table 2 word
 arsenal::write2word(oddsratios, paste0("oddsratios_table2.doc"))
 
-#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
-
-
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
 #=================================================================
@@ -570,18 +567,18 @@ require(rpart)
 who.na <- rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
 
 naplot(na.patterns, 'na per var')
+dev.off()
 plot(who.na, margin = 0.1); test(who.na)
 plot(na.patterns) #Cool!! this shows who has the most missing data.  
 
-m <- lrm(is.na(age) ~ sex * pclass + survived + sibsp + parch, data=t3) #Wald statistics for is.na)age.  Shows that nonsurviving passengers are no more likely to have age missing.  
+m <- lrm(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data=all_data) #Wald statistics for is.na)Gold_Humanism. Shows that students not matching are not more likely to have Gold_Humanism.  The higher the step 1 score the less likely that Gold_Humanism to be missing.  
 anova(m)
 
 ################################################################
 #Impute data in so there are no NAs
 #Page 55 of Harrell book
-Hmisc::aregImpute
-
-a <- aregImpute(~Gender + 
+set.seed(123456)
+mi <- Hmisc::aregImpute(~Gender + 
                   white_non_white + 
                   Couples_Match + 
                   USMLE_Step_1_Score + 
@@ -592,10 +589,12 @@ a <- aregImpute(~Gender +
                   Medical_Education_or_Training_Interrupted + 
                   Misdemeanor_Conviction + 
                   US_or_Canadian_Applicant + 
-                  Count_of_Non_Peer_Reviewed_Online_Publication, data = all_data, n.impute = 5)
-a
+                  Count_of_Non_Peer_Reviewed_Online_Publication + Match_Status_Dichot, data = all_data, 
+                  n.impute = 20, nk = 4, pr = FALSE)
+mi
 
-f <- fit.mult.impute(Match_Status_Dichot ~ Age + Gender + 
+#Page 306 Harrell text for fit.mult.impute, Fits five models and examines the within and between imputation variances.  The output is used to make odds ratios.  
+f.mi <- fit.mult.impute(Match_Status_Dichot ~ (Age + Gender + 
                        white_non_white + 
                        Couples_Match + 
                        USMLE_Step_1_Score + 
@@ -606,14 +605,8 @@ f <- fit.mult.impute(Match_Status_Dichot ~ Age + Gender +
                        Medical_Education_or_Training_Interrupted + 
                        Misdemeanor_Conviction + 
                        US_or_Canadian_Applicant + 
-                       Count_of_Non_Peer_Reviewed_Online_Publication, lrm, a, data=all_data)
-
-
-
-all_data_pre.process <- caret::preProcess(all_data, method = "bagImpute") # Now, impute!
-glimpse(all_data)
-dim(all_data)
-sum(is.na(all_data_pre.process))
+                       Count_of_Non_Peer_Reviewed_Online_Publication), lrm, mi, 
+                       data=all_data, pr = FALSE)
 
 ################################################################
 ### Examination of skewness and kurtosis for numeric values, Zhang book page 65
@@ -1178,6 +1171,12 @@ pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_tab
 
 #Write to Table 2 word
 arsenal::write2word(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_table2.doc"))
+
+#Another way to create odds ratios, page 308 Harrell
+#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
+dd <- datadist(all_data); options(datadist='dd')
+dd <- datadist
+s <- summary(f.mi)
 
 #=================================================================
 #  Prepare the test dataset and predict on NEW DATA
