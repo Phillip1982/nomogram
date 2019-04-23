@@ -29,7 +29,7 @@ all_data$Match_Status_Dichot
 #label(data$Self_Identify)    <- 'Race/Ethnicity'
 labels(all_data$Age)    <- 'Age'
 units(all_data$Age) <- 'years'
-label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
+labels(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
 labels(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
 labels(all_data$Gender) <- 'Gender'
 labels(all_data$Couples_Match) <- 'Couples Matching'
@@ -55,7 +55,7 @@ labels(all_data$Match_Status_Dichot) <- 'Matching Status'
 labels(all_data$Match_Status) <- 'Matching Status'
 labels(all_data) #Check labels for the data set
 all_data$Match_Status_Dichot
-####
+
 
 ############################################################################################
 ####Univariate using the Hmisc::describe function
@@ -77,14 +77,16 @@ t3 <- all_data[,v]
 ############################################################################################
 ####Univariate using the Hmisc::summary graph of data
 #install.packages("zoom")
+library(Hmisc)
 library(zoom)
+
 dd <- rms::datadist(t3)
 options(datadist='dd')
 s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
 dev.off()  #How to save plots as images like PDFs or TIFFs
 tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
-zoom::zm()
+#zoom::zm()
 dev.off()
 
 
@@ -152,7 +154,7 @@ moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the 
 #Therefore only use medians.  
 
 ################################################################
-#### Building Table 1 ####
+#### Building Table 1: Descriptive Variables by Outcome ####
 colnames(all_data)
 table1_all_data <- arsenal::tableby(Match_Status ~
                                       white_non_white + 
@@ -193,9 +195,6 @@ pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html")
 arsenal::write2word(table1_all_data, paste0("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc", title = "Table 1", quiet = FALSE))  #Write to Word 
 pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
 #Need to add a title to the word version
-
-
-
 
 
 #######################################################################################
@@ -241,8 +240,102 @@ wilcox.test(all_data$Count_of_Non_Peer_Reviewed_Online_Publication ~ all_data$Ma
 nrow(all_data)
 ncol(all_data)
 sum(is.na(all_data))
-all_data <- na.omit(all_data)
-sum(is.na(all_data))
+#all_data <- na.omit(all_data)
+#sum(is.na(all_data))
 str(all_data)
 nrow(all_data)
+
+#Page 302 of Harrell book
+na.patterns <- Hmisc::naclus(all_data)
+na.patterns
+require(rpart)
+
+who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
+
+Hmisc::naplot(na.patterns, 'na per var')  #Graphs the variables with missing data  
+dev.off()
+plot(who.na, margin = 0.1); test(who.na)
+plot(na.patterns) #Cool!! this shows who has the most missing data.  
+
+m <- lrm(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data=all_data) #Wald statistics for is.na)Gold_Humanism. Shows that students not matching are not more likely to have Gold_Humanism.  The higher the step 1 score the less likely that Gold_Humanism to be missing.  
+anova(m)
+
+
+##############################################################################################
+#Split the data so that we can run a model and find best factors.  
+train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
+nrow(train)
+test <- filter(all_data, Year == c(2018)) #Test on 2018 data
+nrow(test)
+
+# Examine the proportions of the Match_Status class lable across the datasets.
+prop.table(table(all_data$Match_Status))       #Original data set proportion 
+prop.table(table(train$Match_Status)) #Train data set proportion
+prop.table(table(test$Match_Status))  #Test data set proportion
+nrow(all_data)
+
+#=================================================================
+#  Factor Selection
+#=================================================================
+
+
+
+
+#=================================================================
+#  Creation of a Model Formula with the Training Data
+#=================================================================
+model.binomial.significant <- rms::lrm(Match_Status ~ 
+                                         white_non_white + 
+                                         Age + 
+                                         Gender + 
+                                         Couples_Match + 
+                                         #Expected_Visa_Status_Dichotomized + 
+                                         US_or_Canadian_Applicant + 
+                                         #Medical_School_Type + 
+                                         Medical_Education_or_Training_Interrupted + 
+                                         Misdemeanor_Conviction + 
+                                         Alpha_Omega_Alpha + 
+                                         Gold_Humanism_Honor_Society + 
+                                         Military_Service_Obligation + 
+                                         USMLE_Step_1_Score + 
+                                         Military_Service_Obligation + 
+                                         Count_of_Poster_Presentation + 
+                                         Count_of_Oral_Presentation + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                         Count_of_Peer_Reviewed_Book_Chapter + 
+                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                         Count_of_Peer_Reviewed_Online_Publication + 
+                                         Misdemeanor_Conviction  + 
+                                         Visa_Sponsorship_Needed +
+                                         #OBGYN_Grade +
+                                         Medical_Degree,
+                                       data = train, x=TRUE, y=TRUE)
+
+print(model.binomial.significant)  #Check the C-statistic which is the same as ROC area for binary logistic regression
+anova(model.binomial.significant) #Harrell book page 298, The Wald Anova indicates especially strong age, US or Canadian applicants, USMLE score effects.  
+
+f <- update(model.binomial.significant, x=TRUE, y=TRUE)
+validate(model.binomial.significant, B=200) #Not working
+
+
+#=================================================================
+#  Table 2 of Odds Ratios and CIs for Predictors of Matching into OBGYN
+#=================================================================
+oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(model.binomial.significant), confint.default(model.binomial.significant, level = 0.95))))
+print(oddsratios)
+
+#Write Table 2 to HTML
+arsenal::write2html(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html"), total=FALSE, title = "Table 2", quiet = FALSE, theme = "yeti")
+pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html")
+
+#Write to Table 2 word
+arsenal::write2word(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_table2.doc"))
+
+#Another way to create odds ratios, page 308 Harrell
+#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
+dd <- datadist(train); options(datadist='dd')
+dd <- datadist
+s <- summary(model.binomial.significant)
+
+
 
