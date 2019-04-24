@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -373,7 +373,14 @@ Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status_
 #Count of Posters
 Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
-Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(Count of Poster Presentations, 4)
+Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
+
+
+
+#Count of Oral Presentations
+Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
 
 ##############################################################################################
 ##Imputation.  
@@ -384,7 +391,7 @@ f.A <- aregImpute( ~ as.factor(white_non_white) +  as.numeric(Age) + as.factor(G
 f.A
 
 #Fitting model after imputation
-fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 6) + rcs(Count_of_Poster_Presentation,4) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, lrm, f.A)
+fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 6) + rcs(Count_of_Poster_Presentation,4) +  rcs(Count_of_Oral_Presentation,3) + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, lrm, f.A)
 
 fmi.m.A
 
@@ -482,7 +489,6 @@ calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend
 dev.off()
 
 
-
 #Plotting the Nomogram for fmi.m.A
 #######################################################################################
 ###NOMOGRAM 
@@ -522,8 +528,36 @@ plot(calib)
 calib
 
 ##################################################################################
-#
+#Decision Tee Analysis - Classification Tree
+tree <- rpart(Match_Status_Dichot ~ .,
+data = all_data,
+method = "class", control = rpart.control(cp = 0.0001))
+printcp(tree)
 
+
+tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + 
+                Age + 
+                Gender + 
+                Couples_Match + 
+                US_or_Canadian_Applicant + 
+                #Medical_School_Type + 
+                Medical_Education_or_Training_Interrupted + 
+                #Misdemeanor_Conviction + 
+                Alpha_Omega_Alpha + 
+                Gold_Humanism_Honor_Society + 
+                Military_Service_Obligation + 
+                USMLE_Step_1_Score +
+                Military_Service_Obligation + 
+                Count_of_Poster_Presentation + 
+                Count_of_Oral_Presentation + 
+                Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                Count_of_Peer_Reviewed_Book_Chapter + 
+                Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                Count_of_Peer_Reviewed_Online_Publication + 
+                Visa_Sponsorship_Needed +
+                Medical_Degree, data = all_data, method = "class")
+
+rattle::fancyRpartPlot(tree, main = "Matching into OBGYN Residency")
 
 
 #=================================================================
