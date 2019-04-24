@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -409,7 +409,7 @@ plot(summary(fmi.m.A)) #Table 2 of odds ratios in graph form
 all_data$Year <- as.factor(all_data$Year)
 class(all_data$Year)
 
-#First, we need to fit Model 1 in glm, rather than rms.
+#First, we need to fit Model 1 in glm, rather than rms to get the AUC.
 modelA.glm  <- glm(Match_Status ~     
                      white_non_white + ACLS + BLS + Citizenship + PALS + 
                      rcs(Age, 5) + 
@@ -516,6 +516,33 @@ nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
                    col.grid = gray(c(0.8, 0.95)),
                    which="Match_Status")
 print(nomo_from_fmi.m.A)
+
+#DynNom
+model.lrm  <- rms::lrm(Match_Status ~     
+                    ACLS + BLS + Citizenship + PALS + 
+                     rcs(Age, 5) + 
+                     Gender + 
+                     Couples_Match + 
+                     US_or_Canadian_Applicant + 
+                     #Medical_School_Type + 
+                     Medical_Education_or_Training_Interrupted + 
+                     #Misdemeanor_Conviction + 
+                     Alpha_Omega_Alpha + 
+                     Gold_Humanism_Honor_Society + 
+                     Military_Service_Obligation + 
+                     rcs(USMLE_Step_1_Score, 6) +
+                     Military_Service_Obligation + 
+                     rcs(Count_of_Poster_Presentation,4) + 
+                     Count_of_Oral_Presentation + 
+                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                     Count_of_Peer_Reviewed_Book_Chapter + 
+                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                     Count_of_Peer_Reviewed_Online_Publication + 
+                     Visa_Sponsorship_Needed +
+                     Medical_Degree + white_non_white,
+                   data = all_data)  
+
+DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
 
 # Check Brier Score
 DescTools::BrierScore(nomo_from_fmi.m.A)
