@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -529,12 +529,6 @@ calib
 
 ##################################################################################
 #Decision Tee Analysis - Classification Tree
-tree <- rpart(Match_Status_Dichot ~ .,
-data = all_data,
-method = "class", control = rpart.control(cp = 0.0001))
-printcp(tree)
-
-
 tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + 
                 Age + 
                 Gender + 
@@ -559,6 +553,19 @@ tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship +
 
 rattle::fancyRpartPlot(tree, main = "Matching into OBGYN Residency")
 
+#=================================================================
+#  Decision Curve
+#=================================================================
+
+no.na.all_data <- (na.omit (all_data))
+no.na.all_data$Match_Status_Dichot <- as.numeric(no.na.all_data$Match_Status_Dichot- 1)
+
+model.A.decision.curve <- rmda::decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match +  US_or_Canadian_Applicant + #Medical_School_Type + Medical_Education_or_Training_Interrupted + #Misdemeanor_Conviction 
+  Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation +  USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = no.na.all_data, 
+                     thresholds = seq(0, .4, by = 0.01), family = binomial(link = "logit"), bootstraps = 1000, study.design = "cohort")
+
+plot_decision_curve(model.A.decision.curve, cost.benefit.axis = TRUE,
+                    n.cost.benefits = 6, confidence.intervals = TRUE)
 
 #=================================================================
 #  Creation of a Model Formula with the Training Data
