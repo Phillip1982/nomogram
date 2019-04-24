@@ -192,10 +192,6 @@ pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
 #Need to add a title to the word version
 
 ##############################################################################################
-#Plot Splines
-
-
-##############################################################################################
 ###IDentifying NAs and Imputing
 nrow(all_data)
 ncol(all_data)
@@ -221,7 +217,7 @@ m <- lrm(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_o
 anova(m)
 
 
-##############################################################################################
+###################################################################################
 #Split the data so that we can run a model and find best factors.  
 train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
 nrow(train)
@@ -357,7 +353,29 @@ plot(anova(m.A)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Can
 class(m.A)
 #ggplot(Predict(m.A))
 
+##############################################################################################
+#Plot Splines
 
+#Age Splines
+Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
+#Predictions with group size of 500 patients (triangles) and location of knot (arrows).
+
+
+#USMLE_Step_1_Score Splines
+Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
+
+
+
+#Count of Posters
+Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(Count of Poster Presentations, 4)
+
+##############################################################################################
 ##Imputation.  
 f.A <- aregImpute( ~ as.factor(white_non_white) +  as.numeric(Age) + as.factor(Gender) +  as.factor(Couples_Match) + as.factor(US_or_Canadian_Applicant) +  as.factor(Medical_Education_or_Training_Interrupted) + as.factor(Misdemeanor_Conviction) + as.factor(Alpha_Omega_Alpha) + as.factor(Gold_Humanism_Honor_Society) +  as.factor(Military_Service_Obligation) + as.numeric(USMLE_Step_1_Score) + as.numeric(Count_of_Poster_Presentation) + as.numeric(Count_of_Oral_Presentation) + as.numeric(Count_of_Peer_Reviewed_Journal_Articles_Abstracts) + as.numeric(Count_of_Peer_Reviewed_Book_Chapter) + as.numeric(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) + as.numeric(Count_of_Peer_Reviewed_Online_Publication) + as.factor(Visa_Sponsorship_Needed) + as.factor(Medical_Degree), 
                   data = train, 
@@ -366,7 +384,7 @@ f.A <- aregImpute( ~ as.factor(white_non_white) +  as.numeric(Age) + as.factor(G
 f.A
 
 #Fitting model after imputation
-fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 5) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, lrm, f.A)
+fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 6) + rcs(Count_of_Poster_Presentation,4) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, lrm, f.A)
 
 fmi.m.A
 
@@ -377,37 +395,35 @@ plot(anova(fmi.m.A))
 #Effects plot after imputation
 summary(fmi.m.A)
 
-plot(summary(fmi.m.A)) #Table 2 in graph form
-
-#Nomogram after imputation
-#plot(nomogram(fmi.m.A)) #must feed the nomogram a lrm model to get it to work.  
-
+plot(summary(fmi.m.A)) #Table 2 of odds ratios in graph form
 
 ##############################################################
+#Nomogram after imputation
+all_data$Year <- as.factor(all_data$Year)
+class(all_data$Year)
 
 #First, we need to fit Model 1 in glm, rather than rms.
-modelA.glm  <- glm(Match_Status ~     #Removed predictors suggested by the redundancy analysis
-                     white_non_white + 
-                     Age + 
+modelA.glm  <- glm(Match_Status ~     
+                     white_non_white + ACLS + BLS + Citizenship + PALS + 
+                     rcs(Age, 5) + 
                      Gender + 
                      Couples_Match + 
-                     #US_or_Canadian_Applicant + 
+                     US_or_Canadian_Applicant + 
                      #Medical_School_Type + 
                      Medical_Education_or_Training_Interrupted + 
                      #Misdemeanor_Conviction + 
                      Alpha_Omega_Alpha + 
                      Gold_Humanism_Honor_Society + 
                      Military_Service_Obligation + 
-                     USMLE_Step_1_Score + 
+                     rcs(USMLE_Step_1_Score, 6) +
                      Military_Service_Obligation + 
-                     #Count_of_Poster_Presentation + 
+                     rcs(Count_of_Poster_Presentation,4) + 
                      Count_of_Oral_Presentation + 
-                     #Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
                      Count_of_Peer_Reviewed_Book_Chapter + 
                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
                      Count_of_Peer_Reviewed_Online_Publication + 
                      Visa_Sponsorship_Needed +
-                     #OBGYN_Grade +
                      Medical_Degree,
                    data = test, family = "binomial"(link=logit))  
 
