@@ -5,7 +5,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -17,8 +17,8 @@ setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
 
 ################################################################
 #Load Data
-download.file("https://www.dropbox.com/s/d4dk1v73d92pjwz/all_years_mutate_83.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
-all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_mutate_83.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
+download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
 dplyr::glimpse(all_data)
 dim(all_data)
 colnames(all_data)
@@ -26,34 +26,35 @@ all_data$Match_Status_Dichot
 
 ################################################################
 # Place nicer labels for the data
-#label(data$Self_Identify)    <- 'Race/Ethnicity'
-labels(all_data$Age)    <- 'Age'
+Hmisc::label(all_data$BLS) <- "Certification in Basic Life Support"
+Hmisc::label(all_data$Positions_offered) <- "OBGYN Intern Positions"
+Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
+Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
+Hmisc::label(all_data$Sigma_Sigma_Phi) <- "Sigma Sigma Phi"
+Hmisc::label(all_data$PALS) <- "Certification in Pediatric Life Support"
+Hmisc::label(all_data$Age)    <- 'Age'
 units(all_data$Age) <- 'years'
-labels(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
-labels(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
-labels(all_data$Gender) <- 'Gender'
-labels(all_data$Couples_Match) <- 'Couples Matching'
-labels(all_data$Visa_Status_Expected) <- 'Expected Visa Status'
-labels(all_data$Medical_School_Type) <- 'Medical School Type'
-labels(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
-labels(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
-#label(all_data$USMLE_Step_2_CK_Score) <- 'USMLE Step 2 CK Score'
-#label(all_data$USMLE_Step_2_CS_Score) <- 'USMLE Step 2 CS Score'
-#label(all_data$USMLE_Step_3_Score) <- 'USMLE Step 3 Score'
-labels(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
-labels(all_data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
-labels(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
-labels(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
-labels(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
-labels(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
-#labels(all_data$Other_Service_Obligation) <- 'Other Service Obligation'
-#label(all_data$Med_school_condensed) <- 'Medical School Condensed' 
-labels(all_data$white_non_white) <- 'Race' 
-labels(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
-labels(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
-labels(all_data$Match_Status_Dichot) <- 'Matching Status'
-labels(all_data$Match_Status) <- 'Matching Status'
-labels(all_data) #Check labels for the data set
+Hmisc::label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
+Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
+Hmisc::label(all_data$Gender) <- 'Gender'
+Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
+#Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
+Hmisc::label(all_data$Malpractice_Cases_Pending) <- "Malpractice Cases Pending"
+Hmisc::label(all_data$ACLS) <- "Advanced Cardiac Life Support"
+Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
+Hmisc::label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
+Hmisc::label(all_data$Gold_Humanism_Honor_Society) <- 'Gold Humanism Honors Society'
+Hmisc::label(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
+Hmisc::label(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
+Hmisc::label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
+Hmisc::label(all_data$white_non_white) <- 'Race' 
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
+Hmisc::label(all_data$Match_Status_Dichot) <- 'Matching Status'
+Hmisc::label(all_data$Match_Status) <- 'Matching Status'
+Hmisc::label(all_data) #Check labels for the data set
 all_data$Match_Status_Dichot
 
 
@@ -72,25 +73,22 @@ all_data$Match_Status_Dichot <- as.numeric(all_data$Match_Status_Dichot)
 all_data$Match_Status_Dichot
 all_data$Match_Status_Dichot <- (all_data$Match_Status_Dichot - 1)
 all_data$Match_Status_Dichot  #Outcome must be numeric
-v <- c('Match_Status_Dichot', 'Age', 'white_non_white', 'Gender', 'Alpha_Omega_Alpha','USMLE_Step_1_Score', 'Couples_Match', 'Medical_Education_or_Training_Interrupted', 'Misdemeanor_Conviction', 'US_or_Canadian_Applicant', 'Gold_Humanism_Honor_Society',  'Military_Service_Obligation', 'Count_of_Oral_Presentation', 'Count_of_Peer_Reviewed_Book_Chapter', 'Count_of_Poster_Presentation', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts', 'Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published', 'ACLS', 'Malpractice_Cases_Pending', "PALS", "Citizenship", "Sigma_Sigma_Phi", "Visa_Sponsorship_Needed", "Year", "BLS", "Positions_offered", "Gold_Humanism_Honor_Society")
+v <- colnames(all_data)
 t3 <- all_data[,v]
 
 
 ############################################################################################
 ####Univariate using the Hmisc::summary graph of data
-#install.packages("zoom")
-library(Hmisc)
-library(zoom)
-
 dd <- rms::datadist(t3)
 options(datadist='dd')
+
 s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
+
 dev.off()  #How to save plots as images like PDFs or TIFFs
 tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 #zoom::zm()
 dev.off()
-
 
 
 # Best Univariate graphs from blog.datascienceheroes.com
@@ -99,10 +97,10 @@ library(funModeling)
 funModeling::df_status(all_data)
 nrow(all_data)
 
-#Distributions for nominal variables
-dev.off()
-funModeling::freq(all_data)
-funModeling::freq(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
+#Distributions for nominal variables  ##CROSSPLOTS IS BETTER
+#dev.off()
+#funModeling::freq(all_data)
+#funModeling::freq(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
 
 #Distributions for numerical data
 dev.off()
@@ -117,15 +115,10 @@ a <- colnames(all_data)
 funModeling::cross_plot(data=all_data, input=a, target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 
 
-
-
-
 ################################################################
-#Look for Missing Data
-#Page 302 of Harrell book
+#Look for Missing Data #Page 302 of Harrell book
 na.patterns <- Hmisc::naclus(all_data)
 na.patterns
-require(rpart)
 
 who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
 
@@ -133,16 +126,13 @@ who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medic
 naplot(na.patterns, 'na per var')
 
 #Breakdown of missing data by a variable
-dev.off()
+#dev.off()
 plot(who.na, margin = 0.1); test(who.na)
 plot(na.patterns) 
 dev.off()
 
 m <- lrm(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data=all_data) #Wald statistics for is.na)Gold_Humanism. Shows that students not matching are not more likely to have Gold_Humanism.  The higher the step 1 score the less likely that Gold_Humanism to be missing.  
 anova(m)
-
-
-
 
 ################################################################
 ### Should we use means or medians in table 1?  
@@ -194,13 +184,19 @@ summary(table1_all_data, text=T, title='Table 1:  Demographics of Applicants to 
 arsenal::write2html(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to HTML
 pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html")
 
+#arsenal::write2pdf(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to PDF
+#pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf")
+
 arsenal::write2word(table1_all_data, paste0("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc", title = "Table 1", quiet = FALSE))  #Write to Word 
 pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
 #Need to add a title to the word version
 
 ##############################################################################################
-###IDentifying NAs and Imputing
+#Plot Splines
 
+
+##############################################################################################
+###IDentifying NAs and Imputing
 nrow(all_data)
 ncol(all_data)
 sum(is.na(all_data))
@@ -212,7 +208,6 @@ nrow(all_data)
 #Plotting NAs in the data, Page 302 of Harrell book
 na.patterns <- Hmisc::naclus(all_data)
 na.patterns
-require(rpart)
 
 who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
 
@@ -224,12 +219,6 @@ plot(na.patterns) #Cool!! this shows who has the most missing data.
 
 m <- lrm(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data=all_data) #Wald statistics for is.na)Gold_Humanism. Shows that students not matching are not more likely to have Gold_Humanism.  The higher the step 1 score the less likely that Gold_Humanism to be missing.  
 anova(m)
-
-##############################################################################################
-#Impute!
-
-
-
 
 
 ##############################################################################################
@@ -362,6 +351,7 @@ m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Mat
 
 m.A
 anova(m.A)
+dev.off()
 plot(anova(m.A)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
 
 class(m.A)
@@ -381,6 +371,7 @@ fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gende
 fmi.m.A
 
 #ANOVA plot after imputation
+dev.off()
 plot(anova(fmi.m.A))
 
 #Effects plot after imputation
@@ -389,7 +380,7 @@ summary(fmi.m.A)
 plot(summary(fmi.m.A)) #Table 2 in graph form
 
 #Nomogram after imputation
-plot(nomogram(fmi.m.A)) #must feed the nomogram a lrm model to get it to work.  
+#plot(nomogram(fmi.m.A)) #must feed the nomogram a lrm model to get it to work.  
 
 
 ##############################################################
@@ -466,11 +457,11 @@ plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall 
 ##################################################################################
 #Calibrate Plot for Model A
 dev.off() 
-calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=200, legend = TRUE, digits = 3, subtitles = T))  # The model overpredicts a little at higher values
+calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T))  # The model overpredicts a little at higher values
 
 dev.off()  #How to save plots as images like PDFs or TIFFs
 tiff("~/Dropbox/Nomogram/nomogram/results/calibration curve.tiff") 
-calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=200, legend = TRUE, digits = 3, subtitles = T)) 
+calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T)) 
 #zoom::zm()
 dev.off()
 
@@ -483,19 +474,19 @@ dev.off()
 #lp=FALSE so we don't have the logistic progression
 
 nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A, 
-                                                      #lp.at = seq(-3,4,by=0.5),
-                                                      fun = plogis, 
-                                                      fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
-                                                      funlabel = "Chance of Matching in OBGYN, 2019", 
-                                                      lp =FALSE,
-                                                      #conf.int = c(0.1,0.7), 
-                                                      abbrev = F,
-                                                      minlength = 9)
+         #lp.at = seq(-3,4,by=0.5),
+        fun = plogis, 
+        fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
+        funlabel = "Chance of Matching in OBGYN, 2019", 
+        lp =FALSE,
+        #conf.int = c(0.1,0.7), 
+        abbrev = F,
+        minlength = 9)
 nomogramEx(nomo=nomo_from_fmi.m.A ,np=1,digit=2)  #Gives the polynomial formula
 
 #dev.off()  #Run this until null device = 1
 nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
-                   cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
+      cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
                    #col.conf=c('red','green'),
                    #conf.space=c(0.1,0.5),
@@ -696,6 +687,12 @@ plot(s, log=TRUE)
 
 ###################################################################################
 beepr::beep(sound = 4)
+
+#To do's:
+#1)  Plot numerical variables showing splines.  Like Jelovsek page 13 transfusion paper
+#2)  Decision analysis
+#3)  Add CI to concordance index.  
+#4)  How do you know when there are non-linear assumptions in the data?  When to add splines?
 
 
 
