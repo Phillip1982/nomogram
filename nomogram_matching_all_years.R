@@ -353,6 +353,8 @@ plot(anova(m.A)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Can
 class(m.A)
 #ggplot(Predict(m.A))
 
+#Step five:  Fast Backwards
+
 ##############################################################################################
 #Plot Splines
 
@@ -539,18 +541,22 @@ model.lrm  <- rms::lrm(Match_Status ~
                      Count_of_Peer_Reviewed_Online_Publication + 
                      Visa_Sponsorship_Needed +
                      Medical_Degree + white_non_white,
-                   data = all_data)  
+                   data = all_data, x = TRUE, y= TRUE)  
 
 DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
+
+#Publish to shiny
+getwd()
+DynNom::DNbuilder(model = model.lrm, data = all_data)
 
 # Check Brier Score
 DescTools::BrierScore(nomo_from_fmi.m.A)
 
 # Calibration
-calib <- rms::calibrate(model.lrm, boot=1000, data = test)  #Plot test data set
+calib <- rms::calibrate(model.lrm, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
 #AUC and calibration matters
 
-plot(calib)
+plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75)
 calib
 
 ##################################################################################
@@ -620,6 +626,12 @@ plot_decision_curve( list(full.model_apparent, full.model_cv),
                      lwd = c(3,2, 2, 1), 
                      ylim = c(0, 0.3), 
                      legend.position = "topleft") 
+
+#Plot sensitivity and specificity
+plot_roc_components(full.model_cv,  xlim = c(0, 0.4), 
+                    col = c("black", "red"), 
+                    legend.position = "bottomleft", 
+                    cost.benefit.axis = FALSE)
 
 plot_clinical_impact(full.model_cv, 
                      col = c("red", "blue"), 
