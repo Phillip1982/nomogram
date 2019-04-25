@@ -376,7 +376,6 @@ Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logist
 Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
 
 
-
 #Count of Oral Presentations
 Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
@@ -506,7 +505,7 @@ nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A,
         minlength = 9)
 nomogramEx(nomo=nomo_from_fmi.m.A ,np=1,digit=2)  #Gives the polynomial formula
 
-#dev.off()  #Run this until null device = 1
+dev.off()  #Run this until null device = 1
 nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
       cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
@@ -548,7 +547,7 @@ DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
 DescTools::BrierScore(nomo_from_fmi.m.A)
 
 # Calibration
-calib <- rms::calibrate(fmi.m.A, boot=1000, data = test)  #Plot test data set
+calib <- rms::calibrate(model.lrm, boot=1000, data = test)  #Plot test data set
 #AUC and calibration matters
 
 plot(calib)
@@ -581,18 +580,52 @@ tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship +
 rattle::fancyRpartPlot(tree, main = "Matching into OBGYN Residency")
 
 #=================================================================
-#  Decision Curve
+#  Decision Curve 
+#http://mdbrown.github.io/rmda/#cross-validation
 #=================================================================
+model.A.decision.curve <- decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score +
+Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
+                                 data = all_data, 
+                                 study.design = "cohort", 
+                                 policy = "opt-in",  #default 
+                                 bootstraps = 1000)
 
-no.na.all_data <- (na.omit (all_data))
-no.na.all_data$Match_Status_Dichot <- as.numeric(no.na.all_data$Match_Status_Dichot- 1)
+plot_decision_curve(model.A.decision.curve, cost.benefit.axis = FALSE,
+                    col = c("blue", "red"), 
+                    n.cost.benefits = 6, confidence.intervals = TRUE,
+                    curve.names = "Model A", legend.position = "topright")
 
-model.A.decision.curve <- rmda::decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match +  US_or_Canadian_Applicant + #Medical_School_Type + Medical_Education_or_Training_Interrupted + #Misdemeanor_Conviction 
-  Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation +  USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = no.na.all_data, 
-                     thresholds = seq(0, .4, by = 0.01), family = binomial(link = "logit"), bootstraps = 1000, study.design = "cohort")
+###Cross-Validation, http://mdbrown.github.io/rmda/#cross-validation
+full.model_cv <- cv_decision_curve (Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score +
+  Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, #fitting a logistic model
 
-plot_decision_curve(model.A.decision.curve, cost.benefit.axis = TRUE,
-                    n.cost.benefits = 6, confidence.intervals = TRUE)
+                                   data = all_data,
+                                   folds = 20, 
+                                   thresholds = seq(0, .4, by = .01), 
+                                   policy = "opt-out")
+
+
+full.model_apparent <- decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree,
+                                      data = all_data, 
+                                      thresholds = seq(0, .4, by = .01),
+                                      confidence.intervals = 'none', 
+                                      policy = "opt-out")
+
+
+plot_decision_curve( list(full.model_apparent, full.model_cv), 
+                     curve.names = c("Apparent curve", "Cross-validated curve"),
+                     col = c("red", "blue"), 
+                     cost.benefit.axis = FALSE,
+                     lty = c(2,1), 
+                     lwd = c(3,2, 2, 1), 
+                     ylim = c(0, 0.3), 
+                     legend.position = "topleft") 
+
+plot_clinical_impact(full.model_cv, 
+                     col = c("red", "blue"), 
+                     ylim = c(0, 200), 
+                     cost.benefit.axis = FALSE, 
+                     legend.position = "topleft") 
 
 #=================================================================
 #  Creation of a Model Formula with the Training Data
