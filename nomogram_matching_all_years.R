@@ -1,7 +1,7 @@
 #Muffly, Liss, Alston, Raffaelli, Jelovsek  ###DRAFT###
 
 ##################################################################
-#Objective:  We sought to construct and validate a model that predict a medical students chances of matching into an obstetrics and gynecology residency.  
+#Objective:  We sought to construct and validate a model that predict a medical students chances of matching into an obstetrics and gynecology residency.  The prediction target is matching.  
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
@@ -354,6 +354,7 @@ class(m.A)
 #ggplot(Predict(m.A))
 
 #Step five:  Fast Backwards
+rms::fastbw(m.A, rule = "aic")
 
 ##############################################################################################
 #Plot Splines
@@ -549,8 +550,8 @@ DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
 getwd()
 DynNom::DNbuilder(model = model.lrm, data = all_data)
 
-# Check Brier Score
-DescTools::BrierScore(nomo_from_fmi.m.A)
+# Check Brier Score, https://rpubs.com/ledongnhatnam/288556
+DescTools::BrierScore(modelA.glm)  #REQUIRES GLM model
 
 # Calibration
 calib <- rms::calibrate(model.lrm, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
@@ -581,9 +582,11 @@ tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship +
                 Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
                 Count_of_Peer_Reviewed_Online_Publication + 
                 Visa_Sponsorship_Needed +
-                Medical_Degree, data = all_data, method = "class")
+                Medical_Degree, data = train, method = "class")
 
 rattle::fancyRpartPlot(tree, main = "Matching into OBGYN Residency")
+
+print(predict(tree, test))
 
 #=================================================================
 #  Decision Curve 
@@ -830,3 +833,4 @@ beepr::beep(sound = 4)
 
 sessionInfo()
 dev.off()
+
