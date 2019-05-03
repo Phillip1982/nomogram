@@ -395,7 +395,7 @@ coef(best, s=model$bestTune$lambda)
 # Medical_Education_or_Training_InterruptedYes                           -0.40502
 # Malpractice_Cases_PendingYes                                           -1.62836  ****
 # Medical_DegreeMD                                                        0.92924  ****
-# Military_Service_ObligationYes                                         -0.77347 
+# Military_Service_ObligationYes                                         -0.77347  ****
 # Misdemeanor_ConvictionYes                                               0.43157
 # PALSYes                                                                -0.18686
 # Positions_offered1288                                                   0.18550
@@ -417,7 +417,7 @@ plot(model)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is bet
 
 plot(model$finalModel)
 
-saveRDS(model, "best.LASSO.rds")
+saveRDS(model, "best.LASSO.rds")  #save the model
 
 ###########################################
 #http://www.rpubs.com/Thomas_Roscher/288469
