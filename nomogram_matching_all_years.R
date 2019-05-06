@@ -24,8 +24,8 @@ dplyr::glimpse(all_data)
 dim(all_data)
 colnames(all_data)
 all_data$Match_Status_Dichot
-all_data %>%
-  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction")
+all_data <- all_data %>%
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending")
 
 ################################################################
 # Place nicer labels for the data
@@ -83,7 +83,8 @@ t3 <- all_data[,v]
 dd <- rms::datadist(t3)
 options(datadist='dd')
 
-s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + US_or_Canadian_Applicant + Gold_Humanism_Honor_Society + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
+s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
+s
 
 #dev.off()  #How to save plots as images like PDFs or TIFFs
 #tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
@@ -121,8 +122,6 @@ funModeling::cross_plot(data=all_data, input=a, target="Match_Status", path_out 
 na.patterns <- Hmisc::naclus(all_data)
 na.patterns
 
-who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
-
 #Plots the Fraction of NAs in each Variable.  COOL!
 naplot(na.patterns, 'na per var')
 
@@ -130,7 +129,7 @@ naplot(na.patterns, 'na per var')
 #dev.off()
 plot(who.na, margin = 0.1); test(who.na)
 plot(na.patterns) 
-dev.off()
+#dev.off()
 
 ################################################################
 ### Should we use means or medians in table 1?  
@@ -268,11 +267,11 @@ vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Ca
 plot(vc)
 
 #Step three:  Principal Components Analysis
-train_pca <- caret::preProcess(dplyr::select(train, - Match_Status), 
-                               method = c("center", "scale", "nzv", "pca"))
-train_pca
-train_pca$method
-train_pca$rotation
+# train_pca <- caret::preProcess(dplyr::select(train, - Match_Status), 
+#                                method = c("center", "scale", "nzv", "pca"))
+# train_pca
+# train_pca$method
+# train_pca$rotation
 
 # Results of PCA, factors selected:
 # USMLE_Step_1_Score                                                     -0.20
@@ -326,7 +325,7 @@ print(redun, digits=3, long=TRUE)
 
 #Step five:  Dr. Love's Spearman.  https://rpubs.com/TELOVE/project1-demo1_2019-432
 #A Spearman ρ2plot suggests that US or Canadian applicant is important, but it’s not clear that Count_of_oral_presentations will be particularly useful. In this example, note that we fit this plot without accounting for the missing values of any of these predictors, so that may have some effect.
-dev.off()  
+#dev.off()  
 tiff("~/Dropbox/Nomogram/nomogram/results/Spearman.tiff", width=400, height = 350, res = 50) 
 #https://blog.revolutionanalytics.com/2009/01/10-tips-for-making-your-r-graphics-look-their-best.html
 plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
@@ -344,8 +343,8 @@ myControl <- trainControl(
   classProbs = TRUE, # IMPORTANT!
   verboseIter = TRUE
 )
-
-all_data$Match_Status <- as.numeric(all_data$Match_Status)
+na.omit.all_data <- na.omit(all_data)
+na.omit.all_data$Match_Status <- as.factor(na.omit.all_data$Match_Status)
 
 # Train glmnet with custom trainControl and tuning: model
 model <- train(
@@ -415,7 +414,7 @@ max(model[["results"]][["ROC"]])
 #plot results
 plot(model)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
 
-plot(model$finalModel)
+plot(model$finalModel, xvar = 'lambda', label = TRUE)
 
 saveRDS(model, "best.LASSO.rds")  #save the model
 
@@ -434,7 +433,7 @@ algorithmList <- c("glmnet", "rpart", "nb", "knn", "svmRadial", "nnet")
 set.seed(7)
 model_list_big_d1 <- caretEnsemble::caretList(
   Match_Status~., 
-  data = train,
+  data = na.omit.all_data,
   trControl = trainControl,
   metric = "Kappa",
   tuneList=list(
@@ -461,7 +460,7 @@ model_list_big_d1 <- caretEnsemble::caretList(
 
 # reample and show results  
 results <- resamples(model_list_big_d1) 
-
+results
 
 na.omit.all_data<- na.omit(all_data) %>%
   select(-"Match_Status_Dichot")
@@ -541,7 +540,7 @@ m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Mat
 
 m.A
 anova(m.A)
-dev.off()
+#dev.off()
 plot(anova(m.A)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
 
 class(m.A)
@@ -592,7 +591,7 @@ fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gende
 fmi.m.A
 
 #ANOVA plot after imputation
-dev.off()
+#dev.off()
 plot(anova(fmi.m.A))
 
 #Effects plot after imputation
@@ -675,14 +674,14 @@ plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall 
 
 ##################################################################################
 #Calibrate Plot for Model A
-dev.off() 
+#dev.off() 
 calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T), xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")  # The model overpredicts a little at higher values
 
-dev.off()  #How to save plots as images like PDFs or TIFFs
+#dev.off()  #How to save plots as images like PDFs or TIFFs
 tiff("~/Dropbox/Nomogram/nomogram/results/calibration curve.tiff") 
 calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T), xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching") 
 #zoom::zm()
-dev.off()
+#dev.off()
 
 
 #Plotting the Nomogram for fmi.m.A
@@ -702,7 +701,7 @@ nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A,
         minlength = 9)
 nomogramEx(nomo=nomo_from_fmi.m.A ,np=1,digit=2)  #Gives the polynomial formula
 
-dev.off()  #Run this until null device = 1
+#dev.off()  #Run this until null device = 1
 nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
       cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
@@ -1026,5 +1025,5 @@ beepr::beep(sound = 4)
 #https://rpubs.com/aki2727/cars
 
 sessionInfo()
-dev.off()
+#dev.off()
 
