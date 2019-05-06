@@ -23,13 +23,12 @@ all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84
 dplyr::glimpse(all_data)
 dim(all_data)
 colnames(all_data)
-all_data$Match_Status_Dichot
+all_data$Match_Status
 all_data <- all_data %>%
-  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending")
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS")
 
 ################################################################
 # Place nicer labels for the data
-Hmisc::label(all_data$BLS) <- "Certification in Basic Life Support"
 Hmisc::label(all_data$Positions_offered) <- "OBGYN Intern Positions"
 Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
 Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
@@ -41,7 +40,6 @@ Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
 Hmisc::label(all_data$Gender) <- 'Gender'
 Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
 #Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
-Hmisc::label(all_data$Malpractice_Cases_Pending) <- "Malpractice Cases Pending"
 Hmisc::label(all_data$ACLS) <- "Advanced Cardiac Life Support"
 Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
 #Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
@@ -53,11 +51,8 @@ Hmisc::label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presenta
 Hmisc::label(all_data$white_non_white) <- 'Race' 
 Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
 Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
-Hmisc::label(all_data$Match_Status_Dichot) <- 'Matching Status'
 Hmisc::label(all_data$Match_Status) <- 'Matching Status'
 Hmisc::label(all_data) #Check labels for the data set
-all_data$Match_Status_Dichot
-
 
 ############################################################################################
 ####Univariate using the Hmisc::describe function
@@ -70,20 +65,17 @@ par("mar")
 par(mar=c(1,1,1,1))
 
 colnames(all_data)
-all_data$Match_Status_Dichot <- as.numeric(all_data$Match_Status_Dichot)
-all_data$Match_Status_Dichot
-all_data$Match_Status_Dichot <- (all_data$Match_Status_Dichot - 1)
-all_data$Match_Status_Dichot  #Outcome must be numeric
-v <- colnames(all_data)
-t3 <- all_data[,v]
-
+all_data$Match_Status <- as.numeric(all_data$Match_Status)
+all_data$Match_Status
+all_data$Match_Status <- (all_data$Match_Status - 1)
+all_data$Match_Status #Outcome must be numeric
 
 ############################################################################################
 ####Univariate using the Hmisc::summary graph of data
-dd <- rms::datadist(t3)
+dd <- rms::datadist(all_data)
 options(datadist='dd')
 
-s <- summary(Match_Status_Dichot ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = t3)
+s <- summary(Match_Status ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = all_data)
 s
 
 #dev.off()  #How to save plots as images like PDFs or TIFFs
@@ -113,8 +105,7 @@ funModeling::profiling_num(all_data)
 
 #Shows the variable frequency charted by matching status
 #dev.off ()
-a <- colnames(all_data)
-funModeling::cross_plot(data=all_data, input=a, target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 
 
 ################################################################
@@ -193,8 +184,8 @@ pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
 nrow(all_data)
 ncol(all_data)
 sum(is.na(all_data))
-#all_data <- na.omit(all_data)
-#sum(is.na(all_data))
+all_data <- na.omit(all_data)
+sum(is.na(all_data))
 str(all_data)
 nrow(all_data)
 
@@ -262,7 +253,7 @@ wilcox.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts ~ all_dat
 wilcox.test(all_data$Count_of_Non_Peer_Reviewed_Online_Publication ~ all_data$Match_Status) #SS
 
 #Step two:  Variable Clustering, page 166 Harrel book, Heirarchical clustering
-vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, sim = 'hoeffding', data=train)  #Variables that are on the same branch are closely related
+vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, sim = 'hoeffding', data=train)  #Variables that are on the same branch are closely related
 
 plot(vc)
 
@@ -293,9 +284,7 @@ redun <- Hmisc::redun(~ white_non_white +
                         US_or_Canadian_Applicant + 
                         #Medical_School_Type + 
                         Medical_Education_or_Training_Interrupted + 
-                        Misdemeanor_Conviction + 
                         Alpha_Omega_Alpha + 
-                        Gold_Humanism_Honor_Society + 
                         Military_Service_Obligation + 
                         USMLE_Step_1_Score + 
                         Military_Service_Obligation + 
@@ -328,7 +317,7 @@ print(redun, digits=3, long=TRUE)
 #dev.off()  
 tiff("~/Dropbox/Nomogram/nomogram/results/Spearman.tiff", width=400, height = 350, res = 50) 
 #https://blog.revolutionanalytics.com/2009/01/10-tips-for-making-your-r-graphics-look-their-best.html
-plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
+plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted  + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
                data = train))
 #dev.off()
 
@@ -343,13 +332,13 @@ myControl <- trainControl(
   classProbs = TRUE, # IMPORTANT!
   verboseIter = TRUE
 )
-na.omit.all_data <- na.omit(all_data)
-na.omit.all_data$Match_Status <- as.factor(na.omit.all_data$Match_Status)
+# na.omit.all_data <- na.omit(all_data)
+# na.omit.all_data$Match_Status <- as.factor(na.omit.all_data$Match_Status)
 
 # Train glmnet with custom trainControl and tuning: model
 model <- train(
   Match_Status ~ ., 
-  na.omit.all_data,
+  train,
   family = "binomial",
   tuneGrid = expand.grid(
     alpha = 0:1,
@@ -368,45 +357,6 @@ best <- model$finalModel
 coef(best, s=model$bestTune$lambda)
 
 ###Look for the largest coefficient
-
-# 36 x 1 sparse Matrix of class "dgCMatrix"
-# 1
-# (Intercept)                                                            -7.99482
-# ACLSYes                                                                -0.11882
-# Age                                                                    -0.06587
-# Alpha_Omega_AlphaNo                                                    -0.18220
-# Alpha_Omega_AlphaYes                                                    0.42847
-# BLSYes                                                                  0.45619
-# CitizenshipUS_Citizen                                                   0.90117  ***
-# Count_of_Non_Peer_Reviewed_Online_Publication                           0.01150
-# Count_of_Oral_Presentation                                              0.03690
-# Count_of_Other_Articles                                                -0.00655
-# Count_of_Peer_Reviewed_Book_Chapter                                    -0.17233
-# Count_of_Peer_Reviewed_Journal_Articles_Abstracts                      -0.00113
-# Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published  0.05116
-# Count_of_Peer_Reviewed_Online_Publication                               0.04129
-# Count_of_Poster_Presentation                                            0.01773
-# Count_of_Scientific_Monograph                                          -0.83867  ****
-# Couples_MatchYes                                                        0.43432
-# GenderMale                                                             -0.34425
-# Gold_Humanism_Honor_SocietyNot_a_Member                                -0.11746
-# Gold_Humanism_Honor_SocietyYes                                          0.45965
-# Medical_Education_or_Training_InterruptedYes                           -0.40502
-# Malpractice_Cases_PendingYes                                           -1.62836  ****
-# Medical_DegreeMD                                                        0.92924  ****
-# Military_Service_ObligationYes                                         -0.77347  ****
-# Misdemeanor_ConvictionYes                                               0.43157
-# PALSYes                                                                -0.18686
-# Positions_offered1288                                                   0.18550
-# Positions_offered1336                                                  -0.30650
-# Sigma_Sigma_PhiYes                                                     -0.00091
-# US_or_Canadian_ApplicantYes                                             0.82048   ****
-# USMLE_Step_1_Score                                                      0.03762
-# Visa_Sponsorship_NeededYes                                              0.02261
-# white_non_whiteWhite                                                    0.26618
-# Year2016                                                                0.12546
-# Year2017                                                                0.18663
-# Year2018                                                               -0.30421
 
 # Print maximum ROC statistic
 max(model[["results"]][["ROC"]])
@@ -578,17 +528,14 @@ Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic
 Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
 
 ##############################################################################################
-##Imputation.  
-f.A <- aregImpute( ~ as.factor(white_non_white) +  as.numeric(Age) + as.factor(Gender) +  as.factor(Couples_Match) + as.factor(US_or_Canadian_Applicant) +  as.factor(Medical_Education_or_Training_Interrupted) + as.factor(Misdemeanor_Conviction) + as.factor(Alpha_Omega_Alpha) + as.factor(Gold_Humanism_Honor_Society) +  as.factor(Military_Service_Obligation) + as.numeric(USMLE_Step_1_Score) + as.numeric(Count_of_Poster_Presentation) + as.numeric(Count_of_Oral_Presentation) + as.numeric(Count_of_Peer_Reviewed_Journal_Articles_Abstracts) + as.numeric(Count_of_Peer_Reviewed_Book_Chapter) + as.numeric(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) + as.numeric(Count_of_Peer_Reviewed_Online_Publication) + as.factor(Visa_Sponsorship_Needed) + as.factor(Medical_Degree), 
-                  data = train, 
-                  n.impute = 100, nk = 0, #nk=0 so all factors are linear, otherwise would not work
-                  pr = TRUE, x = TRUE)
-f.A
+d <- datadist(train)
+options(datadist = "d")
 
-#Fitting model after imputation
-fmi.m.A <- fit.mult.impute(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 6) + rcs(Count_of_Poster_Presentation,4) +  rcs(Count_of_Oral_Presentation,3) + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, lrm, f.A)
+fmi.m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
 
 fmi.m.A
+anova(fmi.m.A)
+#dev.off()
 
 #ANOVA plot after imputation
 #dev.off()
@@ -606,7 +553,7 @@ class(all_data$Year)
 
 #First, we need to fit Model 1 in glm, rather than rms to get the AUC.
 modelA.glm  <- glm(Match_Status ~     
-                     white_non_white + ACLS + BLS + Citizenship + PALS + 
+                     white_non_white + ACLS + PALS + 
                      rcs(Age, 5) + 
                      Gender + 
                      Couples_Match + 
@@ -615,7 +562,6 @@ modelA.glm  <- glm(Match_Status ~
                      Medical_Education_or_Training_Interrupted + 
                      #Misdemeanor_Conviction + 
                      Alpha_Omega_Alpha + 
-                     Gold_Humanism_Honor_Society + 
                      Military_Service_Obligation + 
                      rcs(USMLE_Step_1_Score, 6) +
                      Military_Service_Obligation + 
