@@ -25,7 +25,7 @@ dim(all_data)
 colnames(all_data)
 all_data$Match_Status
 all_data <- all_data %>%
-  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS")
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
 
 ################################################################
 # Place nicer labels for the data
@@ -159,24 +159,23 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
                                       Count_of_Peer_Reviewed_Online_Publication + 
                                       Visa_Sponsorship_Needed +
-                                      Positions_offered +
                                       Medical_Degree,
                                     
                                     data=all_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
 
-labels(table1_all_data)  #labels
+# labels(table1_all_data)  #labels
 
 #padjust(table1, method = "bonferroni")   #Adjust for Bonferroni for multiple p-values
-summary(table1_all_data, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology from 2015 to 2018', pfootnote=TRUE)
+# summary(table1_all_data, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology from 2015 to 2018', pfootnote=TRUE)
+# 
+# arsenal::write2html(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to HTML
+# pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html")
 
-arsenal::write2html(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to HTML
-pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html")
+arsenal::write2pdf(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to PDF
+pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf")
 
-#arsenal::write2pdf(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to PDF
-#pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.pdf")
-
-arsenal::write2word(table1_all_data, paste0("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc", title = "Table 1", quiet = FALSE))  #Write to Word 
-pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
+# arsenal::write2word(table1_all_data, paste0("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc", title = "Table 1", quiet = FALSE))  #Write to Word 
+# pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.doc")
 #Need to add a title to the word version
 
 ##############################################################################################
@@ -193,20 +192,21 @@ nrow(all_data)
 na.patterns <- Hmisc::naclus(all_data)
 na.patterns
 
-who.na <- rpart::rpart(is.na(Gold_Humanism_Honor_Society) ~ Match_Status + Medical_Education_or_Training_Interrupted + USMLE_Step_1_Score + white_non_white + US_or_Canadian_Applicant, data = all_data, minbucket = 15)
-
 Hmisc::naplot(na.patterns, 'na per var')  #Graphs the variables with missing data  
 #dev.off()
 
-plot(who.na, margin = 0.1); test(who.na)
 plot(na.patterns) #Cool!! this shows who has the most missing data.  
 
 ###################################################################################
 #Split the data so that we can run a model and find best factors.  
 train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
 nrow(train)
+train <- train %>% select(-"Year")
+train
 test <- filter(all_data, Year == c(2018)) #Test on 2018 data
 nrow(test)
+test <- test %>% select(-"Year")
+test
 
 # Examine the proportions of the Match_Status class lable across the datasets.
 prop.table(table(all_data$Match_Status))       #Original data set proportion 
@@ -228,18 +228,12 @@ t.test(all_data$USMLE_Step_1_Score~all_data$Match_Status) #SS
 chisq.test(all_data$Match_Status, all_data$Visa_Sponsorship_Needed) #SS
 #chisq.test(all_data$Match_Status, all_data$Med_school_condensed)
 chisq.test(all_data$Match_Status, all_data$Medical_Education_or_Training_Interrupted) #SS
-chisq.test(all_data$Match_Status, all_data$Misdemeanor_Conviction) #NOT Significant
 chisq.test(all_data$Match_Status, all_data$Alpha_Omega_Alpha) #SS
 chisq.test(all_data$Match_Status, all_data$US_or_Canadian_Applicant) #SS
-chisq.test(all_data$Match_Status, all_data$Gold_Humanism_Honor_Society) #SS
 chisq.test(all_data$Match_Status, all_data$Military_Service_Obligation)  #Not significant at all
 chisq.test(all_data$Match_Status, all_data$ACLS) #NS
-chisq.test(all_data$Match_Status, all_data$Malpractice_Cases_Pending) #NS
-chisq.test(all_data$Match_Status, all_data$Citizenship) #SS
-chisq.test(all_data$Match_Status, all_data$Sigma_Sigma_Phi) #NS
 chisq.test(all_data$Match_Status, all_data$Medical_Degree) #SS
 chisq.test(all_data$Match_Status, all_data$Year) #SS
-chisq.test(all_data$Match_Status, all_data$Positions_offered) #SS
 
 #Use Wilcox test as data is assumed not to be normally distributed
 wilcox.test(all_data$Count_of_Poster_Presentation ~ all_data$Match_Status) #SS
@@ -321,167 +315,101 @@ plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + U
                data = train))
 #dev.off()
 
-#Step six:LASSO, https://rpubs.com/datascientiest/253917, https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
-grid <- 10^seq(10,-2,length=1000)
+#Step six:LASSO, 
+#https://rpubs.com/datascientiest/253917, https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
+#http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html#log
+#https://amunategui.github.io/binary-outcome-modeling/
 
-# Create custom trainControl: myControl
-myControl <- trainControl(
-  method = "cv", 
-  number = 10,
-  summaryFunction = twoClassSummary,
-  classProbs = TRUE, # IMPORTANT!
-  verboseIter = TRUE
-)
-# na.omit.all_data <- na.omit(all_data)
-# na.omit.all_data$Match_Status <- as.factor(na.omit.all_data$Match_Status)
+#https://rpubs.com/mbaumer/featureSelection
+# 
+# getModelInfo()$lasso$type
+# 
+# grid <- 10^seq(10,-2,length=1000)
+# 
+# # Create custom trainControl: myControl
+# myControl <- trainControl(
+#   method = "cv", 
+#   number = 10,
+#   summaryFunction = twoClassSummary,
+#   classProbs = TRUE, # IMPORTANT!
+#   verboseIter = TRUE)
+# 
+# # na.omit.all_data <- na.omit(all_data)
+# train$Match_Status <- as.factor(train$Match_Status)
+# names(train)
+# str(train)
+# 
+# #Levels for glmnet need to be words and not numbers.  Jesus.  
+# levels(train$Match_Status) <- c("No", "Yes")
+# 
+# # Train glmnet with custom trainControl and tuning: model
+# lasso.mod <- caret::train(
+#   Match_Status ~ ., 
+#   data = train,
+#   family = "binomial",
+#   tuneGrid = expand.grid(
+#     alpha = 0:1,
+#     lambda = seq(0.0001, 1, length = 20)
+#   ),
+#   method = "glmnet",
+#   metric = "ROC",
+#   trControl = myControl
+# )
+# 
+# # Print model to console
+# (lasso.mod)
+# summary(lasso.mod)
+# lasso.mod[["results"]]
+# lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
+# best <- lasso.mod$finalModel
+# coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
+# 
+# #plot results
+# plot(lasso.mod)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
+# 
+# plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
+# saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
+# 
+# ###Making predictions based on the training data
+# predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
 
-# Train glmnet with custom trainControl and tuning: model
-model <- train(
-  Match_Status ~ ., 
-  train,
-  family = "binomial",
-  tuneGrid = expand.grid(
-    alpha = 0:1,
-    lambda = seq(0.0001, 1, length = 20)
-  ),
-  method = "glmnet",
-  metric = "ROC",
-  trControl = myControl
-)
+################################################
+# glmnet model
+################################################
+library(glmnet)
+`%ni%`<-Negate(`%in%`)
 
-# Print model to console
-model
-model[["results"]]
-model$bestTune #Final model is more of a ridge and less of a LASSO model
-best <- model$finalModel
-coef(best, s=model$bestTune$lambda)
+#https://stats.stackexchange.com/questions/58531/using-lasso-from-lars-or-glmnet-package-in-r-for-variable-selection
 
-###Look for the largest coefficient
+train$Match_Status <- as.numeric((train$Match_Status) - 1)
+class(train$Match_Status)
 
-# Print maximum ROC statistic
-max(model[["results"]][["ROC"]])
+x <- model.matrix(train$Match_Status~., data=train)
+class(x)
+x <- x[,-1]
+x
 
-#plot results
-plot(model)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
+glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=5,alpha=.5)
+glmnet1
 
-plot(model$finalModel, xvar = 'lambda', label = TRUE)
+c<-coef(glmnet1,s='lambda.min',exact=TRUE)
+c
 
-saveRDS(model, "best.LASSO.rds")  #save the model
+inds<-which(c!=0)
+variables<-row.names(c)[inds]
+variables<-variables[variables %ni% '(Intercept)']
+variables
+
+# variables found to be important by LASSO
+# [1] "Age"                                          "Count_of_Oral_Presentation"                  
+# [3] "Couples_MatchYes"                             "GenderMale"                                  
+# [5] "Medical_Education_or_Training_InterruptedYes" "Medical_DegreeMD"                            
+# [7] "Military_Service_ObligationYes"               "US_or_Canadian_ApplicantYes"                 
+# [9] "USMLE_Step_1_Score"                           "Visa_Sponsorship_NeededYes"                  
+# [11] "white_non_whiteWhite"                        
+
 
 ###########################################
-#http://www.rpubs.com/Thomas_Roscher/288469
-
-trainControl <- trainControl(method = "cv", 
-                             number = 10,
-                             savePredictions = TRUE, 
-                             classProbs = TRUE)
-
-# define  list of algorithms
-algorithmList <- c("glmnet", "rpart", "nb", "knn", "svmRadial", "nnet")
-
-# train models 
-set.seed(7)
-model_list_big_d1 <- caretEnsemble::caretList(
-  Match_Status~., 
-  data = na.omit.all_data,
-  trControl = trainControl,
-  metric = "Kappa",
-  tuneList=list(
-    logl  = caretModelSpec(method = "glmnet", family = "binomial"),
-    logl2 = caretModelSpec(method = "glmnet", family = "binomial", preProcess = c("center", "scale")),
-    logl3 = caretModelSpec(method = "glmnet", family = "binomial", preProcess = c("center", "scale", "pca")),
-    cart  = caretModelSpec(method = "rpart"),
-    cart2 = caretModelSpec(method = "rpart", preProcess = c("center", "scale")),
-    cart3 = caretModelSpec(method = "rpart", preProcess = c("center", "scale", "pca")),
-    nb    = caretModelSpec(method = "nb"),
-    nb2   = caretModelSpec(method = "nb", preProcess = c("center", "scale")),
-    nb3   = caretModelSpec(method = "nb", preProcess = c("center", "scale", "pca")),
-    knn   = caretModelSpec(method = "knn"),
-    knn2  = caretModelSpec(method = "knn", preProcess = c("center", "scale")),
-    knn3  = caretModelSpec(method = "knn", preProcess = c("center", "scale", "pca")),
-    svm   = caretModelSpec(method = "svmRadial"),
-    svm2  = caretModelSpec(method = "svmRadial", preProcess = c("center", "scale")),
-    svm3  = caretModelSpec(method = "svmRadial", preProcess = c("center", "scale", "pca")),
-    net   = caretModelSpec(method = "nnet"),
-    net2  = caretModelSpec(method = "nnet", preProcess = c("center", "scale")),
-    net3  = caretModelSpec(method = "nnet", preProcess = c("center", "scale", "pca"))
-  )
-)    
-
-# reample and show results  
-results <- resamples(model_list_big_d1) 
-results
-
-na.omit.all_data<- na.omit(all_data) %>%
-  select(-"Match_Status_Dichot")
-x <- model.matrix(Match_Status~.,na.omit.all_data)
-str(x)
-
-y <-(as.numeric(na.omit.all_data$Match_Status)-1)
-str(y)
-
-train <- sample(1:nrow(x), nrow(x)*.67)
-test <- (-train)
-y.test <- y[test]
-
-# Checks
-dim (x[train,])
-
-length(y[train])
-
-length(y.test)
-
-lasso.mod <-glmnet(x[train,], y[train],alpha=1,lambda = grid)
-# glmnet() function standardizes the variables by default so that they are on the same scale.
-# If alpha=0 then a ridge regression model is fit, and if alpha=1 then a lasso model is fit.
-
-dim(coef(lasso.mod ))
-# code to check coef at lamda of 825 location (ie lamda=1.265)
-lasso.mod$lambda[825]
-
-coef(lasso.mod)[,825]
-
-summary(lasso.mod)
-
-par(mfrow=c(1,2))
-plot_glmnet(lasso.mod, xvar = "lambda", label = 5)
-
-plot_glmnet(lasso.mod, xvar="dev",label=5)
-
-set.seed(1)
-#how to choose best lambda
-set.seed(1)
-cv.out=cv.glmnet(x[train,],y[train],alpha=1)
-plot(cv.out, label=TRUE)
-
-coef(cv.out)
-
-bestlam=cv.out$lambda.min
-bestlam
-
-#test MSE associated with this value of ??
-lasso.pred=predict(lasso.mod,s=bestlam,newx=x[test,])
-mse= mean((lasso.pred-y.test)^2)
-
-# refit our lasso regression model on the full data set, using the value of lambda chosen by cross-validation, and examine the coefficient estimates
-out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlam)[1:15,]
-lasso.coef
-
-lasso.coef[lasso.coef!=0]
-
-oby= na.omit.all_data[test,]$Match_Status
-
-error=oby-lasso.pred
-mse=mean(error^2)
-
-# Actual R-square
-R2=1-sum(error^2)/sum((oby-mean(oby))^2)
-R2
-
-
-
-
 ####Model A - The Kitchen Sink Model ####  This is essentially a screening model.  
 d <- datadist(train)
 options(datadist = "d")
