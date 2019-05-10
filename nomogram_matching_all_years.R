@@ -364,9 +364,13 @@ c<-coef(glmnet1,s='lambda.min',exact=TRUE)
 inds<-which(c!=0)
 variables<-row.names(c)[inds]
 variables<-variables[variables %ni% '(Intercept)']
-variables
+variables  ###What variables should be included in the model per LASSO!!!
 summary(glmnet1)
 
+
+################################################
+# Use glmnet model on 2018 test data
+################################################
 #Create predictorsNames variable
 outcomeName <- 'Match_Status'
 (predictorsNames <- names(test)[names(test) != outcomeName])  #Removes outcome from list of predictrs
@@ -428,7 +432,6 @@ Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx
 Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
 
 
-
 #Count of Posters
 Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
@@ -459,7 +462,29 @@ plot(anova(fmi.m.A))
 #Effects plot after imputation
 summary(fmi.m.A)
 
+#=================================================================
+#  Table 2 of Odds Ratios and CIs for Predictors of Matching into OBGYN
+#=================================================================
 plot(summary(fmi.m.A)) #Table 2 of odds ratios in graph form
+
+oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(fmi.m.A), confint.default(fmi.m.A, level = 0.95))))
+print(oddsratios)
+
+#Write Table 2 to HTML
+arsenal::write2html(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html"), total=FALSE, title = "Table 2", quiet = FALSE, theme = "yeti")
+pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html")
+
+#Write to Table 2 word
+arsenal::write2word(oddsratios,("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_table2.doc"))
+pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_table2.doc")
+
+#Another way to create odds ratios, page 308 Harrell
+#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
+dd <- datadist(train); options(datadist='dd')
+dd <- datadist
+s <- summary(model2)
+print(s)
+plot(s, log=TRUE)
 
 ##############################################################
 #Nomogram after imputation
@@ -537,7 +562,7 @@ nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A,
          #lp.at = seq(-3,4,by=0.5),
         fun = plogis, 
         fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
-        funlabel = "Chance of Matching in OBGYN, 2019", 
+        funlabel = "Chance of Matching in OBGYN", 
         lp =FALSE,
         #conf.int = c(0.1,0.7), 
         abbrev = F,
@@ -655,29 +680,6 @@ plot_clinical_impact(full.model_cv,
                      ylim = c(0, 200), 
                      cost.benefit.axis = FALSE, 
                      legend.position = "topleft") 
-
-#=================================================================
-#  Table 2 of Odds Ratios and CIs for Predictors of Matching into OBGYN
-#=================================================================
-oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(model2), confint.default(model2, level = 0.95))))
-print(oddsratios)
-
-#Write Table 2 to HTML
-arsenal::write2html(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html"), total=FALSE, title = "Table 2", quiet = FALSE, theme = "yeti")
-pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddratios_table2.html")
-
-#Write to Table 2 word
-arsenal::write2word(oddsratios, ("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_table2.doc"))
-
-#Another way to create odds ratios, page 308 Harrell
-#Use Hmisc to plot out odds ratios that are alot clearer than Table 2
-dd <- datadist(train); options(datadist='dd')
-dd <- datadist
-s <- summary(model2)
-print(s)
-plot(s, log=TRUE)
-
-
 
 ###################################################################################
 beepr::beep(sound = 4)
