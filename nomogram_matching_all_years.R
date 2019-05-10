@@ -113,15 +113,6 @@ funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match
 na.patterns <- Hmisc::naclus(all_data)
 na.patterns
 
-#Plots the Fraction of NAs in each Variable.  COOL!
-naplot(na.patterns, 'na per var')
-
-#Breakdown of missing data by a variable
-#dev.off()
-plot(who.na, margin = 0.1); test(who.na)
-plot(na.patterns) 
-#dev.off()
-
 ################################################################
 ### Should we use means or medians in table 1?  
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
@@ -319,81 +310,249 @@ plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + U
 #https://rpubs.com/datascientiest/253917, https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
 #http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html#log
 #https://amunategui.github.io/binary-outcome-modeling/
-
+#https://amunategui.github.io/binary-outcome-modeling/#sourcecode  #Has exact same accent as Falcone
 #https://rpubs.com/mbaumer/featureSelection
+
+################################################
+# Caret package for LASSO model
+################################################
+
+#################################################
+# data prep
+#################################################
 # 
-# getModelInfo()$lasso$type
+# #load data
+# download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+# titanicDF <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  %>% 
+#   select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered") %>%#Bring in years 2015, 2016, 2017, and 2018 data
+#   na.omit()
+# sum(is.na(titanicDF))
+# titanicDF$Match_Status <- as.numeric(titanicDF$Match_Status)
+# titanicDF$Match_Status <- titanicDF$Match_Status - 1
+# (titanicDF$Match_Status <- as.integer(titanicDF$Match_Status))
+# class(titanicDF$Match_Status)
+# titanicDF$Year <- as.factor(titanicDF$Year)
+# # miso format
+# (titanicDF <- titanicDF[c('ACLS',    'Age',   'Alpha_Omega_Alpha', 'Year', 'Match_Status')])
 # 
-# grid <- 10^seq(10,-2,length=1000)
+# # dummy variables for factors/characters
+# titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
+# (titanicDF <- as.data.frame(predict(titanicDummy,titanicDF)))
+# print(names(titanicDF))
 # 
-# # Create custom trainControl: myControl
-# myControl <- trainControl(
-#   method = "cv", 
-#   number = 10,
-#   summaryFunction = twoClassSummary,
-#   classProbs = TRUE, # IMPORTANT!
-#   verboseIter = TRUE)
+# # what is the proportion of your outcome variable?
+# prop.table(table(titanicDF$Match_Status))
 # 
-# # na.omit.all_data <- na.omit(all_data)
-# train$Match_Status <- as.factor(train$Match_Status)
-# names(train)
-# str(train)
+# # save the outcome for the glmnet model
+# tempOutcome <- titanicDF$Match_Status
 # 
-# #Levels for glmnet need to be words and not numbers.  Jesus.  
-# levels(train$Match_Status) <- c("No", "Yes")
+# # generalize outcome and predictor variables
+# outcomeName <- 'Match_Status'
+# predictorsNames <- names(titanicDF)[names(titanicDF) != outcomeName]
+# class(predictorsNames)
 # 
-# # Train glmnet with custom trainControl and tuning: model
-# lasso.mod <- caret::train(
-#   Match_Status ~ ., 
-#   data = train,
-#   family = "binomial",
-#   tuneGrid = expand.grid(
-#     alpha = 0:1,
-#     lambda = seq(0.0001, 1, length = 20)
-#   ),
-#   method = "glmnet",
-#   metric = "ROC",
-#   trControl = myControl
-# )
+# #################################################
+# # model it
+# #################################################
+# titanicDF <- titanicDF %>% select(-'Year2015', -'Year2016', -'Year2017')
+# titanicDF$Match_Status <- ifelse(titanicDF$Match_Status==1,'Success','NoMatch')
+# (titanicDF$Match_Status <- as.factor(titanicDF$Match_Status))
 # 
-# # Print model to console
-# (lasso.mod)
-# summary(lasso.mod)
-# lasso.mod[["results"]]
-# lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
-# best <- lasso.mod$finalModel
-# coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
+# # pick model gbm and find out what type of model it is
+# getModelInfo()$gbm$type
 # 
-# #plot results
-# plot(lasso.mod)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
+# # split data into training and testing chunks
+# set.seed(1234)
+# #splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
+# # trainDF <- titanicDF %>% filter(Year2018 == 0) #Filter year based on matrix values
+# # trainDF <- trainDF %>% select(-"Year2018")
+# # testDF  <- titanicDF %>% filter(Year2018 == 1)
+# # testDF <- testDF %>% select(-"Year2018")
+# # names(trainDF)
+# # class(trainDF)
 # 
-# plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
-# saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
+# # split data into training and testing chunks
+# set.seed(1234)
+# splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
+# trainDF <- titanicDF[ splitIndex,]
+# testDF  <- titanicDF[-splitIndex,]
 # 
-# ###Making predictions based on the training data
-# predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
+# # create caret trainControl object to control the number of cross-validations performed
+# objControl <- trainControl(method='cv', number=10, returnResamp='none', summaryFunction = twoClassSummary, classProbs = TRUE)
+# 
+# class(trainDF)
+# class(predictorsNames)
+# 
+# # run model
+# objModel <- caret::train(data = trainDF, 
+#                   method='gbm', 
+#                   trControl=objControl,  
+#                   metric = "ROC",
+#                   preProc = c("center", "scale"))
+# 
+# # find out variable importance
+# summary(objModel)
+# 
+# 
+# 
+# 
+# ################################################
+# # glmnet model
+# ################################################
+# 
+# # pick model gbm and find out what type of model it is
+# getModelInfo()$glmnet$type
+# 
+# # save the outcome for the glmnet model
+# titanicDF$Match_Status  <- tempOutcome
+# 
+# # split data into training and testing chunks
+# set.seed(1234)
+# splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
+# trainDF <- titanicDF[ splitIndex,]
+# testDF  <- titanicDF[-splitIndex,]
+# 
+# # create caret trainControl object to control the number of cross-validations performed
+# #objControl <- trainControl(method='cv', number=3, returnResamp='none')
+# objControl <- trainControl(method='cv', number=10, returnResamp='none', summaryFunction = twoClassSummary, classProbs = TRUE)
+# 
+# titanicDF$Match_Status <- ifelse(titanicDF$Match_Status==1,'Success','NoMatch')
+# (titanicDF$Match_Status <- as.integer(titanicDF$Match_Status))
+# class(titanicDF$Match_Status)
+# 
+# 
+# # run model
+# objModel <- train(Match_Status ~ ACLS.No, trainDF, method='glmnet',  trControl=objControl)
+# 
+# # get predictions on your testing data
+# predictions <- predict(object=objModel, testDF[,predictorsNames])
+# 
+# library(pROC)
+# auc <- roc(testDF[,outcomeName], predictions)
+# print(auc$auc)
+# 
+# postResample(pred=predictions, obs=testDF[,outcomeName])
+# 
+# # find out variable importance
+# summary(objModel)
+# plot(varImp(objModel,scale=F))
+# 
+# # find out model details
+# objModel
+# 
+# # display variable importance on a +/- scale 
+# vimp <- varImp(objModel, scale=F)
+# results <- data.frame(row.names(vimp$importance),vimp$importance$Overall)
+# results$VariableName <- rownames(vimp)
+# colnames(results) <- c('VariableName','Weight')
+# results <- results[order(results$Weight),]
+# results <- results[(results$Weight != 0),]
+# 
+# par(mar=c(5,15,4,2)) # increase y-axis margin. 
+# xx <- barplot(results$Weight, width = 0.85, 
+#               main = paste("Variable Importance -",outcomeName), horiz = T, 
+#               xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
+#               col = ifelse((results$Weight > 0), 'blue', 'red')) 
+# axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
+# 
+# 
+
+# # dummy variables for factors/characters.  glmnet can only take a matrix so create dummy vars.  
+# trainDummy <- dummyVars("Match_Status ~.", data=train, fullRank=F)
+# train <- as.data.frame(predict(trainDummy,train))
+# print(names(train))
+# 
+# # generalize outcome and predictor variables
+# outcomeName <- 'Match_Status'
+# predictorsNames <- names(train)[names(train) != outcomeName] #Set this up so can reuse model again
+# 
+# #Get the model information on the glmnet model from caret
+# caret::getModelInfo()$glmnet$type
+# 
+# # save the outcome for the glmnet model
+# tempOutcome <- as.factor(train$Match_Status)
+# 
+# # split data into training and testing chunks
+# set.seed(123456)
+# 
+# # create caret trainControl object to control the number of cross-validations performed
+# objModel <- caret::train(train, train$Match_Status, method='glmnet',  metric = "RMSE", trControl=objControl)
+# 
+# # run the model
+# objModel <- train(trainDF[,predictorsNames], as.factor(trainDF[,outcomeName]), 
+#                   method='gbm', 
+#                   trControl=objControl,  
+#                   metric = "ROC",
+#                   preProc = c("center", "scale"))
+
+
+grid <- 10^seq(10,-2,length=1000)
+
+# Create custom trainControl: myControl
+myControl <- trainControl(
+  method = "cv",
+  number = 10,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE, # IMPORTANT!
+  verboseIter = TRUE)
+
+# na.omit.all_data <- na.omit(all_data)
+train$Match_Status <- as.factor(train$Match_Status)
+names(train)
+str(train)
+
+#Levels for glmnet need to be words and not numbers.  Jesus.
+levels(train$Match_Status) <- c("NoMatch", "Matched")
+
+# Train glmnet with custom trainControl and tuning: model
+lasso.mod <- caret::train(
+  Match_Status ~ .,
+  data = train,
+  family = "binomial",
+  tuneGrid = expand.grid(
+    alpha = 0:1,
+    lambda = seq(0.0001, 1, length = 20)
+  ),
+  method = "glmnet",
+  metric = "ROC",
+  trControl = myControl
+)
+
+# Print model to console
+(lasso.mod)
+summary(lasso.mod)
+lasso.mod[["results"]]
+lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
+best <- lasso.mod$finalModel
+coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
+
+#plot results
+plot(lasso.mod)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
+
+plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
+saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
+
+###Making predictions based on the training data
+predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
 
 ################################################
 # glmnet model
 ################################################
-library(glmnet)
+#https://stats.stackexchange.com/questions/58531/using-lasso-from-lars-or-glmnet-package-in-r-for-variable-selection
 `%ni%`<-Negate(`%in%`)
 
-#https://stats.stackexchange.com/questions/58531/using-lasso-from-lars-or-glmnet-package-in-r-for-variable-selection
-
-train$Match_Status <- as.numeric((train$Match_Status) - 1)
-class(train$Match_Status)
-
+# save the outcome for the glmnet model
 x <- model.matrix(train$Match_Status~., data=train)
 class(x)
-x <- x[,-1]
+x <- x[,-1]  #Removes intercept
 x
 
-glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=5,alpha=.5)
+class(train$Match_Status)
+glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=10,alpha=.5, family="binomial")
 glmnet1
+plot(glmnet1)
 
 c<-coef(glmnet1,s='lambda.min',exact=TRUE)
-c
 
 inds<-which(c!=0)
 variables<-row.names(c)[inds]
@@ -407,6 +566,51 @@ variables
 # [7] "Military_Service_ObligationYes"               "US_or_Canadian_ApplicantYes"                 
 # [9] "USMLE_Step_1_Score"                           "Visa_Sponsorship_NeededYes"                  
 # [11] "white_non_whiteWhite"                        
+
+summary(glmnet1)
+
+#Create predictorsNames variable
+outcomeName <- 'Match_Status'
+(predictorsNames <- names(all_data)[names(all_data) != outcomeName])  #Removes outcome from list of predictrs
+predictorsNames <- predictorsNames[1:22]  #Removes year
+class(predictorsNames)
+
+# get predictions on your testing data
+predictions <- predict(object=glmnet1, test[,predictorsNames])
+
+library(pROC)
+auc <- roc(testDF[,outcomeName], predictions)
+print(auc$auc)
+
+postResample(pred=predictions, obs=testDF[,outcomeName])
+
+# find out variable importance
+summary(objModel)
+plot(varImp(objModel,scale=F))
+
+# find out model details
+objModel
+
+# display variable importance on a +/- scale 
+vimp <- varImp(objModel, scale=F)
+results <- data.frame(row.names(vimp$importance),vimp$importance$Overall)
+results$VariableName <- rownames(vimp)
+colnames(results) <- c('VariableName','Weight')
+results <- results[order(results$Weight),]
+results <- results[(results$Weight != 0),]
+
+par(mar=c(5,15,4,2)) # increase y-axis margin. 
+xx <- barplot(results$Weight, width = 0.85, 
+              main = paste("Variable Importance -",outcomeName), horiz = T, 
+              xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
+              col = ifelse((results$Weight > 0), 'blue', 'red')) 
+axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
+
+
+
+
+
+
 
 
 ###########################################
