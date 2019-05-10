@@ -498,11 +498,13 @@ myControl <- trainControl(
 
 # na.omit.all_data <- na.omit(all_data)
 train$Match_Status <- as.factor(train$Match_Status)
+test$Match_Status <- as.factor(test$Match_Status)
 names(train)
 str(train)
 
 #Levels for glmnet need to be words and not numbers.  Jesus.
 levels(train$Match_Status) <- c("NoMatch", "Matched")
+levels(test$Match_Status) <- c("NoMatch", "Matched")
 
 # Train glmnet with custom trainControl and tuning: model
 lasso.mod <- caret::train(
@@ -571,15 +573,17 @@ summary(glmnet1)
 
 #Create predictorsNames variable
 outcomeName <- 'Match_Status'
-(predictorsNames <- names(all_data)[names(all_data) != outcomeName])  #Removes outcome from list of predictrs
-predictorsNames <- predictorsNames[1:22]  #Removes year
+(predictorsNames <- names(test)[names(test) != outcomeName])  #Removes outcome from list of predictrs
 class(predictorsNames)
 
 # get predictions on your testing data
-predictions <- predict(object=glmnet1, test[,predictorsNames])
+b <- model.matrix(test$Match_Status~., data=test) #x <- model.matrix(train$Match_Status~., data=train)
+a <- b[,-1]  #Removes intercept from the matrix as we did for model
+
+predictions<-predict(object = glmnet1, newx=a, s="lambda.min")  #What is the matrix?
 
 library(pROC)
-auc <- roc(testDF[,outcomeName], predictions)
+auc <- roc(a, predictions)
 print(auc$auc)
 
 postResample(pred=predictions, obs=testDF[,outcomeName])
