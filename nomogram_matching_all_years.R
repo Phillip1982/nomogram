@@ -62,7 +62,7 @@ Hmisc::describe(all_data) # A little better than summary.  Gives proportions for
 #Look at the data in one graph.  Nice.  Page 292 in Harrell's book
 #dev.off()
 par("mar")
-par(mar=c(1,1,1,1))
+par(mar=c(1,1,1,1))  #Make borders thinner
 
 colnames(all_data)
 all_data$Match_Status <- as.numeric(all_data$Match_Status)
@@ -91,11 +91,6 @@ library(funModeling)
 funModeling::df_status(all_data)
 nrow(all_data)
 
-#Distributions for nominal variables  ##CROSSPLOTS IS BETTER
-#dev.off()
-#funModeling::freq(all_data)
-#funModeling::freq(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
-
 #Distributions for numerical data
 #dev.off()
 funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
@@ -116,9 +111,7 @@ na.patterns
 ################################################################
 ### Should we use means or medians in table 1?  
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
-
 colnames(all_data)
-par(mfrow=c(1,2))
 hist(all_data$Age)  #There is skew in age
 hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
 moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
@@ -151,7 +144,6 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       Count_of_Peer_Reviewed_Online_Publication + 
                                       Visa_Sponsorship_Needed +
                                       Medical_Degree,
-                                    
                                     data=all_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
 
 # labels(table1_all_data)  #labels
@@ -239,25 +231,14 @@ wilcox.test(all_data$Count_of_Non_Peer_Reviewed_Online_Publication ~ all_data$Ma
 
 #Step two:  Variable Clustering, page 166 Harrel book, Heirarchical clustering
 vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, sim = 'hoeffding', data=train)  #Variables that are on the same branch are closely related
-
 plot(vc)
 
 #Step three:  Principal Components Analysis
-# train_pca <- caret::preProcess(dplyr::select(train, - Match_Status), 
-#                                method = c("center", "scale", "nzv", "pca"))
-# train_pca
-# train_pca$method
-# train_pca$rotation
-
-# Results of PCA, factors selected:
-# USMLE_Step_1_Score                                                     -0.20
-# Count_of_Oral_Presentation                                              0.43
-# Count_of_Other_Articles                                                 0.11
-# Count_of_Peer_Reviewed_Journal_Articles_Abstracts                       0.53
-# Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published  0.25
-# Count_of_Peer_Reviewed_Online_Publication                               0.18
-# Count_of_Poster_Presentation                                            0.50
-# Age                                                                     0.32
+train_pca <- caret::preProcess(dplyr::select(train, - Match_Status),
+                               method = c("center", "scale", "nzv", "pca"))
+train_pca
+train_pca$method
+train_pca$rotation
 
 
 #Step four: Redundancy Analysis
@@ -285,17 +266,7 @@ redun <- Hmisc::redun(~ white_non_white +
 print(redun, digits=3, long=TRUE)
 # 
 # Rendundant variables:
-#   
 #   US_or_Canadian_Applicant Count_of_Poster_Presentation Count_of_Peer_Reviewed_Journal_Articles_Abstracts
-# 
-# Predicted from variables:
-#   
-#   white_non_white Age Gender Couples_Match Medical_Education_or_Training_Interrupted Misdemeanor_Conviction Alpha_Omega_Alpha Gold_Humanism_Honor_Society Military_Service_Obligation USMLE_Step_1_Score Count_of_Oral_Presentation Count_of_Peer_Reviewed_Book_Chapter Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published Count_of_Peer_Reviewed_Online_Publication Visa_Sponsorship_Needed Medical_Degree 
-# 
-# Variable Deleted  R^2 R^2 after later deletions
-# 1                          US_or_Canadian_Applicant 0.55               0.526 0.514
-# 2                      Count_of_Poster_Presentation 0.54                     0.434
-# 3 Count_of_Peer_Reviewed_Journal_Articles_Abstracts 0.36      
 
 #Step five:  Dr. Love's Spearman.  https://rpubs.com/TELOVE/project1-demo1_2019-432
 #A Spearman ρ2plot suggests that US or Canadian applicant is important, but it’s not clear that Count_of_oral_presentations will be particularly useful. In this example, note that we fit this plot without accounting for the missing values of any of these predictors, so that may have some effect.
@@ -394,15 +365,6 @@ inds<-which(c!=0)
 variables<-row.names(c)[inds]
 variables<-variables[variables %ni% '(Intercept)']
 variables
-
-# variables found to be important by LASSO
-# [1] "Age"                                          "Count_of_Oral_Presentation"                  
-# [3] "Couples_MatchYes"                             "GenderMale"                                  
-# [5] "Medical_Education_or_Training_InterruptedYes" "Medical_DegreeMD"                            
-# [7] "Military_Service_ObligationYes"               "US_or_Canadian_ApplicantYes"                 
-# [9] "USMLE_Step_1_Score"                           "Visa_Sponsorship_NeededYes"                  
-# [11] "white_non_whiteWhite"                        
-
 summary(glmnet1)
 
 #Create predictorsNames variable
@@ -597,7 +559,7 @@ print(nomo_from_fmi.m.A)
 model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = all_data, x = TRUE, y= TRUE)  
 
-#DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
+#DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)  #Not workings
 
 #Publish to shiny
 getwd()
@@ -615,7 +577,7 @@ calib
 
 ##################################################################################
 #Decision Tee Analysis - Classification Tree
-tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + 
+tree <- rpart(Match_Status ~ white_non_white + ACLS + PALS + 
                 Age + 
                 Gender + 
                 Couples_Match + 
@@ -624,7 +586,6 @@ tree <- rpart(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship +
                 Medical_Education_or_Training_Interrupted + 
                 #Misdemeanor_Conviction + 
                 Alpha_Omega_Alpha + 
-                Gold_Humanism_Honor_Society + 
                 Military_Service_Obligation + 
                 USMLE_Step_1_Score +
                 Military_Service_Obligation + 
@@ -696,158 +657,6 @@ plot_clinical_impact(full.model_cv,
                      legend.position = "topleft") 
 
 #=================================================================
-#  Creation of a Model Formula with the Training Data
-#=================================================================
-model1  <- rms::lrm(Match_Status ~ 
-                                         white_non_white + 
-                                         Age + 
-                                         Gender + 
-                                         Couples_Match + 
-                                         #Expected_Visa_Status_Dichotomized + 
-                                         US_or_Canadian_Applicant + 
-                                         #Medical_School_Type + 
-                                         Medical_Education_or_Training_Interrupted + 
-                                         Misdemeanor_Conviction + 
-                                         Alpha_Omega_Alpha + 
-                                         Gold_Humanism_Honor_Society + 
-                                         Military_Service_Obligation + 
-                                         USMLE_Step_1_Score + 
-                                         Military_Service_Obligation + 
-                                         Count_of_Poster_Presentation + 
-                                         Count_of_Oral_Presentation + 
-                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                                         Count_of_Peer_Reviewed_Book_Chapter + 
-                                         Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                                         Count_of_Peer_Reviewed_Online_Publication + 
-                                         Visa_Sponsorship_Needed +
-                                         #OBGYN_Grade +
-                                         Medical_Degree,
-                                       data = train, x=TRUE, y=TRUE)
-
-print(model1)  #Check the C-statistic which is the same as ROC area for binary logistic regression
-anova(model1) #Harrell book page 298, The Wald Anova indicates especially strong age, US or Canadian applicants, USMLE score effects.  
-validate(model1, B=200) #Not working
-
-model2  <- rms::lrm(Match_Status ~     #Removed predictors suggested by the redundancy analysis
-                      white_non_white + 
-                      Age + 
-                      Gender + 
-                      Couples_Match + 
-                      #US_or_Canadian_Applicant + 
-                      #Medical_School_Type + 
-                      Medical_Education_or_Training_Interrupted + 
-                      Misdemeanor_Conviction + 
-                      Alpha_Omega_Alpha + 
-                      Gold_Humanism_Honor_Society + 
-                      Military_Service_Obligation + 
-                      USMLE_Step_1_Score + 
-                      Military_Service_Obligation + 
-                      #Count_of_Poster_Presentation + 
-                      Count_of_Oral_Presentation + 
-                      #Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                      Count_of_Peer_Reviewed_Book_Chapter + 
-                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                      Count_of_Peer_Reviewed_Online_Publication + 
-                      Visa_Sponsorship_Needed +
-                      #OBGYN_Grade +
-                      Medical_Degree,
-                    data = train, x=TRUE, y=TRUE)
-model2
-
-
-model2.glm  <- glm(Match_Status ~     #Removed predictors suggested by the redundancy analysis
-                      white_non_white + 
-                      Age + 
-                      Gender + 
-                      Couples_Match + 
-                      #US_or_Canadian_Applicant + 
-                      #Medical_School_Type + 
-                      Medical_Education_or_Training_Interrupted + 
-                      #Misdemeanor_Conviction + 
-                      Alpha_Omega_Alpha + 
-                      Gold_Humanism_Honor_Society + 
-                      Military_Service_Obligation + 
-                      USMLE_Step_1_Score + 
-                      Military_Service_Obligation + 
-                      #Count_of_Poster_Presentation + 
-                      Count_of_Oral_Presentation + 
-                      #Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                      Count_of_Peer_Reviewed_Book_Chapter + 
-                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                      Count_of_Peer_Reviewed_Online_Publication + 
-                      Visa_Sponsorship_Needed +
-                      #OBGYN_Grade +
-                      Medical_Degree,
-                      data = test, family = "binomial")  
-
-#Compare the two models using a likelihood ration test
-lmtest::lrtest(model1, model2)  #P-value is not significant so the two models are comparable. 
-
-
-###Created a model so that when you are in 2nd year of medical school there are some modifiable things you can do.  
-modifiable.model  <- rms::lrm(Match_Status ~     #Removed predictors suggested by the redundancy analysis
-                      #white_non_white + 
-                      #Age + 
-                      #Gender + 
-                      #Couples_Match + 
-                      #US_or_Canadian_Applicant + 
-                      #Medical_School_Type + 
-                      #Medical_Education_or_Training_Interrupted + 
-                      Misdemeanor_Conviction + 
-                      Alpha_Omega_Alpha + 
-                      Gold_Humanism_Honor_Society + 
-                      #Military_Service_Obligation + 
-                      USMLE_Step_1_Score + 
-                      Military_Service_Obligation + 
-                      #Count_of_Poster_Presentation + 
-                      Count_of_Oral_Presentation + 
-                      #Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                      Count_of_Peer_Reviewed_Book_Chapter + 
-                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                      Count_of_Peer_Reviewed_Online_Publication + 
-                      Misdemeanor_Conviction  + 
-                      Visa_Sponsorship_Needed, #+
-                      #OBGYN_Grade +
-                      #Medical_Degree,
-                    data = train, x=TRUE, y=TRUE)
-modifiable.model #C-statistic is 0.79
-
-lmtest::lrtest(model2, modifiable.model)  #P-value is significant so the two models are NOT comparable. 
-
-#=================================================================
-#Look for Co-linearity with Variance Inflation Factors
-#=================================================================
-rms::vif(model2) #Should be <4
-
-
-#Step five: assessing fit of the model, page 75 in Zhang Book
-# Compute AUC for predicting Match_Status_Dichot with the model
-prob <- predict(model2.glm, newdata=test, type="response",progress="window")  #Must use GLM model
-str(prob)
-
-
-pred <- prediction(prob, test$Match_Status)
-perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-plot(perf)
-auc <- performance(pred, measure = "auc")
-auc <- auc@y.values[[1]]
-auc  
-
-#Page 75 Zhangbook
-Deducer::rocplot(model2.glm, diag = TRUE, prob.label.digits = TRUE, AUC = TRUE)
-
-#ROC Curve in color, https://rpubs.com/aki2727/cars
-perf <- performance(pred, 'tpr','fpr')
-plot(perf, colorize = TRUE, text.adj = c(-0.2,1.7), main="Receiver-Operator Curve")
-
-perf1 <- performance(pred, "sens", "spec")
-plot(perf1)
-
-## precision/recall curve (x-axis: recall, y-axis: precision)
-perf2 <- performance(pred, "prec", "rec")
-plot(perf2)
-
-#=================================================================
 #  Table 2 of Odds Ratios and CIs for Predictors of Matching into OBGYN
 #=================================================================
 oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(model2), confint.default(model2, level = 0.95))))
@@ -878,7 +687,6 @@ beepr::beep(sound = 4)
 #2)  Decision analysis
 #3)  Add CI to concordance index.  
 #4)  How do you know when there are non-linear assumptions in the data?  When to add splines?
-
 
 
 #https://rpubs.com/kaz_yos/epi288-validation3
