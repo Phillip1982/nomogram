@@ -580,42 +580,23 @@ class(predictorsNames)
 b <- model.matrix(test$Match_Status~., data=test) #x <- model.matrix(train$Match_Status~., data=train)
 a <- b[,-1]  #Removes intercept from the matrix as we did for model
 
-predictions<-predict(object = glmnet1, newx=a, s="lambda.min")  #What is the matrix?
+predictions<-predict(object = glmnet1, newx=a, s="lambda.min", family = "binomial")  #What is the matrix?
+predictions
 
-library(pROC)
-auc <- roc(a, predictions)
+d <- as.data.frame(test[,outcomeName])
+levels(d$Match_Status) <- c("NoMatch", "Matched")
+
+test$Match_Status <- as.numeric(test$Match_Status)  #pROC only accepts numeric variables, not a matrix
+test$Match_Status <- (test$Match_Status - 1)
+predictions <- as.numeric(predictions)
+
+auc <- pROC::roc(test$Match_Status, predictions)
 print(auc$auc)
 
-postResample(pred=predictions, obs=testDF[,outcomeName])
-
-# find out variable importance
-summary(objModel)
-plot(varImp(objModel,scale=F))
-
-# find out model details
-objModel
-
-# display variable importance on a +/- scale 
-vimp <- varImp(objModel, scale=F)
-results <- data.frame(row.names(vimp$importance),vimp$importance$Overall)
-results$VariableName <- rownames(vimp)
-colnames(results) <- c('VariableName','Weight')
-results <- results[order(results$Weight),]
-results <- results[(results$Weight != 0),]
-
-par(mar=c(5,15,4,2)) # increase y-axis margin. 
-xx <- barplot(results$Weight, width = 0.85, 
-              main = paste("Variable Importance -",outcomeName), horiz = T, 
-              xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
-              col = ifelse((results$Weight > 0), 'blue', 'red')) 
-axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
-
-
-
-
-
-
-
+predictions <- as.matrix(predictions)
+class(predictions)
+class(test)
+postResample(pred=predictions, obs=test)
 
 ###########################################
 ####Model A - The Kitchen Sink Model ####  This is essentially a screening model.  
