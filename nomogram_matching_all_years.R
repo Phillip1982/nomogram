@@ -312,181 +312,11 @@ plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + U
 #https://amunategui.github.io/binary-outcome-modeling/
 #https://amunategui.github.io/binary-outcome-modeling/#sourcecode  #Has exact same accent as Falcone
 #https://rpubs.com/mbaumer/featureSelection
+#http://uc-r.github.io/regularized_regression
 
 ################################################
-# Caret package for LASSO model
+# LASSO model
 ################################################
-
-#################################################
-# data prep
-#################################################
-# 
-# #load data
-# download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
-# titanicDF <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  %>% 
-#   select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered") %>%#Bring in years 2015, 2016, 2017, and 2018 data
-#   na.omit()
-# sum(is.na(titanicDF))
-# titanicDF$Match_Status <- as.numeric(titanicDF$Match_Status)
-# titanicDF$Match_Status <- titanicDF$Match_Status - 1
-# (titanicDF$Match_Status <- as.integer(titanicDF$Match_Status))
-# class(titanicDF$Match_Status)
-# titanicDF$Year <- as.factor(titanicDF$Year)
-# # miso format
-# (titanicDF <- titanicDF[c('ACLS',    'Age',   'Alpha_Omega_Alpha', 'Year', 'Match_Status')])
-# 
-# # dummy variables for factors/characters
-# titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
-# (titanicDF <- as.data.frame(predict(titanicDummy,titanicDF)))
-# print(names(titanicDF))
-# 
-# # what is the proportion of your outcome variable?
-# prop.table(table(titanicDF$Match_Status))
-# 
-# # save the outcome for the glmnet model
-# tempOutcome <- titanicDF$Match_Status
-# 
-# # generalize outcome and predictor variables
-# outcomeName <- 'Match_Status'
-# predictorsNames <- names(titanicDF)[names(titanicDF) != outcomeName]
-# class(predictorsNames)
-# 
-# #################################################
-# # model it
-# #################################################
-# titanicDF <- titanicDF %>% select(-'Year2015', -'Year2016', -'Year2017')
-# titanicDF$Match_Status <- ifelse(titanicDF$Match_Status==1,'Success','NoMatch')
-# (titanicDF$Match_Status <- as.factor(titanicDF$Match_Status))
-# 
-# # pick model gbm and find out what type of model it is
-# getModelInfo()$gbm$type
-# 
-# # split data into training and testing chunks
-# set.seed(1234)
-# #splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
-# # trainDF <- titanicDF %>% filter(Year2018 == 0) #Filter year based on matrix values
-# # trainDF <- trainDF %>% select(-"Year2018")
-# # testDF  <- titanicDF %>% filter(Year2018 == 1)
-# # testDF <- testDF %>% select(-"Year2018")
-# # names(trainDF)
-# # class(trainDF)
-# 
-# # split data into training and testing chunks
-# set.seed(1234)
-# splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
-# trainDF <- titanicDF[ splitIndex,]
-# testDF  <- titanicDF[-splitIndex,]
-# 
-# # create caret trainControl object to control the number of cross-validations performed
-# objControl <- trainControl(method='cv', number=10, returnResamp='none', summaryFunction = twoClassSummary, classProbs = TRUE)
-# 
-# class(trainDF)
-# class(predictorsNames)
-# 
-# # run model
-# objModel <- caret::train(data = trainDF, 
-#                   method='gbm', 
-#                   trControl=objControl,  
-#                   metric = "ROC",
-#                   preProc = c("center", "scale"))
-# 
-# # find out variable importance
-# summary(objModel)
-# 
-# 
-# 
-# 
-# ################################################
-# # glmnet model
-# ################################################
-# 
-# # pick model gbm and find out what type of model it is
-# getModelInfo()$glmnet$type
-# 
-# # save the outcome for the glmnet model
-# titanicDF$Match_Status  <- tempOutcome
-# 
-# # split data into training and testing chunks
-# set.seed(1234)
-# splitIndex <- createDataPartition(titanicDF[,outcomeName], p = .75, list = FALSE, times = 1)
-# trainDF <- titanicDF[ splitIndex,]
-# testDF  <- titanicDF[-splitIndex,]
-# 
-# # create caret trainControl object to control the number of cross-validations performed
-# #objControl <- trainControl(method='cv', number=3, returnResamp='none')
-# objControl <- trainControl(method='cv', number=10, returnResamp='none', summaryFunction = twoClassSummary, classProbs = TRUE)
-# 
-# titanicDF$Match_Status <- ifelse(titanicDF$Match_Status==1,'Success','NoMatch')
-# (titanicDF$Match_Status <- as.integer(titanicDF$Match_Status))
-# class(titanicDF$Match_Status)
-# 
-# 
-# # run model
-# objModel <- train(Match_Status ~ ACLS.No, trainDF, method='glmnet',  trControl=objControl)
-# 
-# # get predictions on your testing data
-# predictions <- predict(object=objModel, testDF[,predictorsNames])
-# 
-# library(pROC)
-# auc <- roc(testDF[,outcomeName], predictions)
-# print(auc$auc)
-# 
-# postResample(pred=predictions, obs=testDF[,outcomeName])
-# 
-# # find out variable importance
-# summary(objModel)
-# plot(varImp(objModel,scale=F))
-# 
-# # find out model details
-# objModel
-# 
-# # display variable importance on a +/- scale 
-# vimp <- varImp(objModel, scale=F)
-# results <- data.frame(row.names(vimp$importance),vimp$importance$Overall)
-# results$VariableName <- rownames(vimp)
-# colnames(results) <- c('VariableName','Weight')
-# results <- results[order(results$Weight),]
-# results <- results[(results$Weight != 0),]
-# 
-# par(mar=c(5,15,4,2)) # increase y-axis margin. 
-# xx <- barplot(results$Weight, width = 0.85, 
-#               main = paste("Variable Importance -",outcomeName), horiz = T, 
-#               xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
-#               col = ifelse((results$Weight > 0), 'blue', 'red')) 
-# axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
-# 
-# 
-
-# # dummy variables for factors/characters.  glmnet can only take a matrix so create dummy vars.  
-# trainDummy <- dummyVars("Match_Status ~.", data=train, fullRank=F)
-# train <- as.data.frame(predict(trainDummy,train))
-# print(names(train))
-# 
-# # generalize outcome and predictor variables
-# outcomeName <- 'Match_Status'
-# predictorsNames <- names(train)[names(train) != outcomeName] #Set this up so can reuse model again
-# 
-# #Get the model information on the glmnet model from caret
-# caret::getModelInfo()$glmnet$type
-# 
-# # save the outcome for the glmnet model
-# tempOutcome <- as.factor(train$Match_Status)
-# 
-# # split data into training and testing chunks
-# set.seed(123456)
-# 
-# # create caret trainControl object to control the number of cross-validations performed
-# objModel <- caret::train(train, train$Match_Status, method='glmnet',  metric = "RMSE", trControl=objControl)
-# 
-# # run the model
-# objModel <- train(trainDF[,predictorsNames], as.factor(trainDF[,outcomeName]), 
-#                   method='gbm', 
-#                   trControl=objControl,  
-#                   metric = "ROC",
-#                   preProc = c("center", "scale"))
-
-
-grid <- 10^seq(10,-2,length=1000)
 
 # Create custom trainControl: myControl
 myControl <- trainControl(
@@ -517,8 +347,7 @@ lasso.mod <- caret::train(
   ),
   method = "glmnet",
   metric = "ROC",
-  trControl = myControl
-)
+  trControl = myControl)
 
 # Print model to console
 (lasso.mod)
@@ -532,6 +361,10 @@ coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
 plot(lasso.mod)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is better
 
 plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
+legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .3)
+
+#Would be cool to add a legend https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+
 saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
 
 ###Making predictions based on the training data
@@ -553,6 +386,7 @@ class(train$Match_Status)
 glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=10,alpha=.5, family="binomial")
 glmnet1
 plot(glmnet1)
+#The glmnet1 plot indcates that for high lambda error is very high, and the coefficients are restricted to be too small, and then at some point, it kind of levels off. This indicates that the full model is it is doing a good job.  Also, There’s two vertical lines. The one is at the minimum, and the other vertical line is at one standard error of the minimum, within one standard error. So it’s a slightly more restricted model that does almost as well as the minimum.
 
 c<-coef(glmnet1,s='lambda.min',exact=TRUE)
 
@@ -596,14 +430,14 @@ print(auc$auc)
 predictions <- as.matrix(predictions)
 class(predictions)
 class(test)
-postResample(pred=predictions, obs=test)
+postResample(pred=predictions, obs=test)  ###NOT WORKING
 
 ###########################################
 ####Model A - The Kitchen Sink Model ####  This is essentially a screening model.  
 d <- datadist(train)
 options(datadist = "d")
 
-m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Misdemeanor_Conviction + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
 
 m.A
 anova(m.A)
@@ -622,33 +456,35 @@ rms::fastbw(m.A, rule = "aic")
 #Age Splines
 Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
-Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
+Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
 #Predictions with group size of 500 patients (triangles) and location of knot (arrows).
 
 
 #USMLE_Step_1_Score Splines
 Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
-Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
+Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
 
 
 
 #Count of Posters
 Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
-Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
+Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
 
 
 #Count of Oral Presentations
 Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
-Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status_Dichot, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
+Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
 
 ##############################################################################################
 d <- datadist(train)
 options(datadist = "d")
 
-fmi.m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+paste("These are the variables from LASSO for the nomogram:", variables)
+
+fmi.m.A <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
 
 fmi.m.A
 anova(fmi.m.A)
@@ -669,27 +505,9 @@ all_data$Year <- as.factor(all_data$Year)
 class(all_data$Year)
 
 #First, we need to fit Model 1 in glm, rather than rms to get the AUC.
-modelA.glm  <- glm(Match_Status ~     
-                     white_non_white + ACLS + PALS + 
-                     rcs(Age, 5) + 
-                     Gender + 
-                     Couples_Match + 
-                     US_or_Canadian_Applicant + 
-                     #Medical_School_Type + 
-                     Medical_Education_or_Training_Interrupted + 
-                     #Misdemeanor_Conviction + 
-                     Alpha_Omega_Alpha + 
-                     Military_Service_Obligation + 
-                     rcs(USMLE_Step_1_Score, 6) +
-                     Military_Service_Obligation + 
-                     rcs(Count_of_Poster_Presentation,4) + 
-                     Count_of_Oral_Presentation + 
-                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                     Count_of_Peer_Reviewed_Book_Chapter + 
-                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                     Count_of_Peer_Reviewed_Online_Publication + 
-                     Visa_Sponsorship_Needed +
-                     Medical_Degree,
+paste("These are the variables from LASSO for the nomogram:", variables)
+
+modelA.glm  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = test, family = "binomial"(link=logit))  
 
 #ROC Curve type 1 using ggplot with nice control
@@ -776,28 +594,7 @@ nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
 print(nomo_from_fmi.m.A)
 
 #DynNom
-model.lrm  <- rms::lrm(Match_Status ~     
-                    ACLS + BLS + Citizenship + PALS + 
-                     rcs(Age, 5) + 
-                     Gender + 
-                     Couples_Match + 
-                     US_or_Canadian_Applicant + 
-                     #Medical_School_Type + 
-                     Medical_Education_or_Training_Interrupted + 
-                     #Misdemeanor_Conviction + 
-                     Alpha_Omega_Alpha + 
-                     Gold_Humanism_Honor_Society + 
-                     Military_Service_Obligation + 
-                     rcs(USMLE_Step_1_Score, 6) +
-                     Military_Service_Obligation + 
-                     rcs(Count_of_Poster_Presentation,4) + 
-                     Count_of_Oral_Presentation + 
-                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                     Count_of_Peer_Reviewed_Book_Chapter + 
-                     Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                     Count_of_Peer_Reviewed_Online_Publication + 
-                     Visa_Sponsorship_Needed +
-                     Medical_Degree + white_non_white,
+model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = all_data, x = TRUE, y= TRUE)  
 
 #DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)
