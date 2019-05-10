@@ -27,12 +27,12 @@ all_data$Match_Status
 all_data <- all_data %>%
   select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
 
+all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
+
 ################################################################
 # Place nicer labels for the data
-Hmisc::label(all_data$Positions_offered) <- "OBGYN Intern Positions"
 Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
 Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
-Hmisc::label(all_data$PALS) <- "Certification in Pediatric Life Support"
 Hmisc::label(all_data$Age)    <- 'Age'
 units(all_data$Age) <- 'years'
 Hmisc::label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
@@ -40,7 +40,6 @@ Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
 Hmisc::label(all_data$Gender) <- 'Gender'
 Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
 #Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
-Hmisc::label(all_data$ACLS) <- "Advanced Cardiac Life Support"
 Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
 #Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
 Hmisc::label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
@@ -81,9 +80,7 @@ s
 #dev.off()  #How to save plots as images like PDFs or TIFFs
 #tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
-#zoom::zm()
 #dev.off()
-
 
 # Best Univariate graphs from blog.datascienceheroes.com
 # install.packages("funModeling")
@@ -101,7 +98,6 @@ funModeling::profiling_num(all_data)
 #Shows the variable frequency charted by matching status
 #dev.off ()
 funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
-
 
 ################################################################
 #Look for Missing Data #Page 302 of Harrell book
@@ -224,10 +220,8 @@ wilcox.test(all_data$Count_of_Oral_Presentation ~ all_data$Match_Status)  #NS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Book_Chapter ~ all_data$Match_Status) #SS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Online_Publication ~ all_data$Match_Status) #NS
 wilcox.test(all_data$USMLE_Step_1_Score ~ all_data$Match_Status) #SS
-wilcox.test(all_data$Count_of_Scientific_Monograph ~ all_data$Match_Status) #NS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published ~ all_data$Match_Status) #NS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts ~ all_data$Match_Status) #SS
-wilcox.test(all_data$Count_of_Non_Peer_Reviewed_Online_Publication ~ all_data$Match_Status) #SS
 
 #Step two:  Variable Clustering, page 166 Harrel book, Heirarchical clustering
 vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, sim = 'hoeffding', data=train)  #Variables that are on the same branch are closely related
@@ -278,7 +272,8 @@ plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + U
 #dev.off()
 
 #Step six:LASSO, 
-#https://rpubs.com/datascientiest/253917, https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
+#https://rpubs.com/datascientiest/253917, 
+#https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
 #http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html#log
 #https://amunategui.github.io/binary-outcome-modeling/
 #https://amunategui.github.io/binary-outcome-modeling/#sourcecode  #Has exact same accent as Falcone
@@ -333,8 +328,7 @@ plot(lasso.mod)  # 0 =1 ridge regression and 1 = LASSO regression, here ridge is
 
 plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
 legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .3)
-
-#Would be cool to add a legend https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+#https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
 
 saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
 
@@ -347,7 +341,8 @@ predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
 #https://stats.stackexchange.com/questions/58531/using-lasso-from-lars-or-glmnet-package-in-r-for-variable-selection
 `%ni%`<-Negate(`%in%`)
 
-# save the outcome for the glmnet model
+# save the outcome for the glmnet model, could use dummyVars with fullRan=FALSE can remove collinearity by removing male.gender so you are either male or female
+
 x <- model.matrix(train$Match_Status~., data=train)
 class(x)
 x <- x[,-1]  #Removes intercept
@@ -399,22 +394,21 @@ class(test)
 postResample(pred=predictions, obs=test)  ###NOT WORKING
 
 ###########################################
-####Model A - The Kitchen Sink Model ####  This is essentially a screening model.  
+####Model A - The Kitchen Sink Model ####  This is essentially a screening model with all variables.  
 d <- datadist(train)
 options(datadist = "d")
 
-m.A <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
 
-m.A
-anova(m.A)
+kitchen.sink
+anova(kitchen.sink)
 #dev.off()
-plot(anova(m.A)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
-
-class(m.A)
+plot(anova(kitchen.sink)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
+class(kitchen.sink)
 #ggplot(Predict(m.A))
 
 #Step five:  Fast Backwards
-rms::fastbw(m.A, rule = "aic")
+rms::fastbw(kitchen.sink, rule = "aic")
 
 ##############################################################################################
 #Plot Splines
@@ -424,7 +418,6 @@ Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.
 
 Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
 #Predictions with group size of 500 patients (triangles) and location of knot (arrows).
-
 
 #USMLE_Step_1_Score Splines
 Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
@@ -444,30 +437,30 @@ Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic
 Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
 
 ##############################################################################################
-d <- datadist(train)
+d <- datadist(test)
 options(datadist = "d")
 
 paste("These are the variables from LASSO for the nomogram:", variables)
 
-fmi.m.A <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
 
-fmi.m.A
-anova(fmi.m.A)
+lrm.with.lasso.variables
+anova(lrm.with.lasso.variables)
 #dev.off()
 
 #ANOVA plot after imputation
 #dev.off()
-plot(anova(fmi.m.A))
+plot(anova(lrm.with.lasso.variables))
 
 #Effects plot after imputation
-summary(fmi.m.A)
+summary(lrm.with.lasso.variables)
 
 #=================================================================
 #  Table 2 of Odds Ratios and CIs for Predictors of Matching into OBGYN
 #=================================================================
-plot(summary(fmi.m.A)) #Table 2 of odds ratios in graph form
+plot(summary(lrm.with.lasso.variables)) #Table 2 of odds ratios in graph form
 
-oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(fmi.m.A), confint.default(fmi.m.A, level = 0.95))))
+oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
 print(oddsratios)
 
 #Write Table 2 to HTML
@@ -482,24 +475,23 @@ pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_oddsratios_ta
 #Use Hmisc to plot out odds ratios that are alot clearer than Table 2
 dd <- datadist(train); options(datadist='dd')
 dd <- datadist
-s <- summary(model2)
+s <- summary(model2)  #########??????????????###################
 print(s)
 plot(s, log=TRUE)
 
 ##############################################################
-#Nomogram after imputation
-all_data$Year <- as.factor(all_data$Year)
-class(all_data$Year)
+##  Change Over to Using Test
+##############################################################
 
 #First, we need to fit Model 1 in glm, rather than rms to get the AUC.
 paste("These are the variables from LASSO for the nomogram:", variables)
 
-modelA.glm  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = test, family = "binomial"(link=logit))  
 
 #ROC Curve type 1 using ggplot with nice control
 # requires ROCR package
-prob <- predict(modelA.glm, data = na.omit(test), type="response")
+prob <- predict(glm.with.lasso.variables, data = na.omit(test), type="response")
 pred <- prediction(prob, na.omit(test)$Match_Status)
 # rest of this doesn't need much adjustment except for titles
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
@@ -514,7 +506,6 @@ ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
   labs(title = paste0("ROC Curve with area under the curve = ", auc),
        subtitle = "Model A for test data")
 
-
 #ROC Curve type 2 with nice labels on the x and y
 pred <- prediction(prob, test$Match_Status)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
@@ -525,7 +516,7 @@ auc
 
 #ROC Curve Type 3 with nice diagnal line but half of the formula printed
 #Page 75 Zhangbook
-Deducer::rocplot(modelA.glm, diag = TRUE, prob.label.digits = TRUE, AUC = TRUE)
+Deducer::rocplot(glm.with.lasso.variables, diag = TRUE, prob.label.digits = TRUE, AUC = TRUE)
 
 
 #ROC Curve Type 4, ROC in color, https://rpubs.com/aki2727/cars
@@ -541,24 +532,23 @@ perf2 <- performance(pred, "prec", "rec")
 plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall for Model A")
 
 ##################################################################################
-#Calibrate Plot for Model A
-#dev.off() 
-calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T), xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")  # The model overpredicts a little at higher values
+#Calibrate Plot for lrm.with.lasso.variables
 
 #dev.off()  #How to save plots as images like PDFs or TIFFs
 tiff("~/Dropbox/Nomogram/nomogram/results/calibration curve.tiff") 
-calibration.Model.A <- plot(rms::calibrate(m.A, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T), xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching") 
-#zoom::zm()
+calibration.glm.with.lasso.variables <- plot(rms::calibrate(lrm.with.lasso.variables, cmethod=("boot"), B=1000, legend = TRUE, digits = 3, subtitles = T), xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching") 
 #dev.off()
 
 
-#Plotting the Nomogram for fmi.m.A
+#Plotting the Nomogram for lrm.with.lasso.variables
 #######################################################################################
 ###NOMOGRAM 
 #fun.at - Demarcations on the function axis: "Matching into obgyn"
 #lp=FALSE so we don't have the logistic progression
+d <- datadist(test)
+options(datadist = "d")
 
-nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A, 
+nomo.from.lrm.with.lasso.variables <- rms::nomogram(lrm.with.lasso.variables, 
          #lp.at = seq(-3,4,by=0.5),
         fun = plogis, 
         fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
@@ -567,10 +557,10 @@ nomo_from_fmi.m.A <- rms::nomogram(fmi.m.A,
         #conf.int = c(0.1,0.7), 
         abbrev = F,
         minlength = 9)
-nomogramEx(nomo=nomo_from_fmi.m.A ,np=1,digit=2)  #Gives the polynomial formula
+nomogramEx(nomo=nomo.from.lrm.with.lasso.variables ,np=1,digit=2)  #Gives the polynomial formula
 
 #dev.off()  #Run this until null device = 1
-nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
+nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor",
       cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
                    #col.conf=c('red','green'),
@@ -578,122 +568,32 @@ nomo_final <- plot(nomo_from_fmi.m.A , lplabel="Linear Predictor",
                    label.every=1,
                    col.grid = gray(c(0.8, 0.95)),
                    which="Match_Status")
-print(nomo_from_fmi.m.A)
+print(nomo.from.lrm.with.lasso.variables)
 
 #DynNom
 model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = all_data, x = TRUE, y= TRUE)  
 
-#DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)  #Not workings
+DynNom::DynNom.lrm(model = model.lrm, data = all_data,  clevel = 0.95)  #Not workings
 
 #Publish to shiny
 getwd()
 DynNom::DNbuilder(model = model.lrm, data = all_data)
 
 # Check Brier Score, https://rpubs.com/ledongnhatnam/288556
-DescTools::BrierScore(modelA.glm)  #REQUIRES GLM model
+DescTools::BrierScore(glm.with.lasso.variables)  #REQUIRES GLM model
 
 # Calibration
-calib <- rms::calibrate(model.lrm, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
+calib <- rms::calibrate(lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
 #AUC and calibration matters
 
 plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
 calib
 
-##################################################################################
-#Decision Tee Analysis - Classification Tree
-tree <- rpart(Match_Status ~ white_non_white + ACLS + PALS + 
-                Age + 
-                Gender + 
-                Couples_Match + 
-                US_or_Canadian_Applicant + 
-                #Medical_School_Type + 
-                Medical_Education_or_Training_Interrupted + 
-                #Misdemeanor_Conviction + 
-                Alpha_Omega_Alpha + 
-                Military_Service_Obligation + 
-                USMLE_Step_1_Score +
-                Military_Service_Obligation + 
-                Count_of_Poster_Presentation + 
-                Count_of_Oral_Presentation + 
-                Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                Count_of_Peer_Reviewed_Book_Chapter + 
-                Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                Count_of_Peer_Reviewed_Online_Publication + 
-                Visa_Sponsorship_Needed +
-                Medical_Degree, data = train, method = "class")
-
-rattle::fancyRpartPlot(tree, main = "Matching into OBGYN Residency")
-
-print(predict(tree, test))
-
-#=================================================================
-#  Decision Curve 
-#http://mdbrown.github.io/rmda/#cross-validation
-#=================================================================
-model.A.decision.curve <- decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score +
-Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
-                                 data = all_data, 
-                                 study.design = "cohort", 
-                                 policy = "opt-in",  #default 
-                                 bootstraps = 1000)
-
-plot_decision_curve(model.A.decision.curve, cost.benefit.axis = FALSE,
-                    col = c("blue", "red"), 
-                    n.cost.benefits = 6, confidence.intervals = TRUE,
-                    curve.names = "Model A", legend.position = "topright")
-
-###Cross-Validation, http://mdbrown.github.io/rmda/#cross-validation
-full.model_cv <- cv_decision_curve (Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score +
-  Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, #fitting a logistic model
-
-                                   data = all_data,
-                                   folds = 20, 
-                                   thresholds = seq(0, .4, by = .01), 
-                                   policy = "opt-out")
-
-
-full.model_apparent <- decision_curve(Match_Status_Dichot ~ white_non_white + ACLS + BLS + Citizenship + PALS + Age + Gender + Couples_Match + US_or_Canadian_Applicant + Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha + Gold_Humanism_Honor_Society + Military_Service_Obligation + USMLE_Step_1_Score + Military_Service_Obligation + Count_of_Poster_Presentation + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree,
-                                      data = all_data, 
-                                      thresholds = seq(0, .4, by = .01),
-                                      confidence.intervals = 'none', 
-                                      policy = "opt-out")
-
-
-plot_decision_curve( list(full.model_apparent, full.model_cv), 
-                     curve.names = c("Apparent curve", "Cross-validated curve"),
-                     col = c("red", "blue"), 
-                     cost.benefit.axis = FALSE,
-                     lty = c(2,1), 
-                     lwd = c(3,2, 2, 1), 
-                     ylim = c(0, 0.3), 
-                     legend.position = "topleft") 
-
-#Plot sensitivity and specificity
-plot_roc_components(full.model_cv,  xlim = c(0, 0.4), 
-                    col = c("black", "red"), 
-                    legend.position = "bottomleft", 
-                    cost.benefit.axis = FALSE)
-
-plot_clinical_impact(full.model_cv, 
-                     col = c("red", "blue"), 
-                     ylim = c(0, 200), 
-                     cost.benefit.axis = FALSE, 
-                     legend.position = "topleft") 
-
 ###################################################################################
 beepr::beep(sound = 4)
 
-#To do's:
-#1)  Plot numerical variables showing splines.  Like Jelovsek page 13 transfusion paper
-#2)  Decision analysis
-#3)  Add CI to concordance index.  
-#4)  How do you know when there are non-linear assumptions in the data?  When to add splines?
-
-
-#https://rpubs.com/kaz_yos/epi288-validation3
-#https://rpubs.com/aki2727/cars
 
 sessionInfo()
-#dev.off()
+dev.off()
 
