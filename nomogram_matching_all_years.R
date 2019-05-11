@@ -6,7 +6,7 @@
 
 #Install and Load packages
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "rJava")
 #.libPaths("/Users/tylermuffly/.exploratory/R/3.5")  # Set libPaths.
 #packrat::init(infer.dependencies = TRUE)
 packrat_mode(on = TRUE)
@@ -81,12 +81,11 @@ s
 
 #dev.off()  #How to save plots as images like PDFs or TIFFs
 #tiff("~/Dropbox/Nomogram/nomogram/results/Univariate_Analysis.tiff") 
-plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
+plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.5, cex.main=0.6, cex.lab=0.6, subtitles = FALSE, xlim=c(0,0.99), xlab = "Chance of Matching into OBGYN Residency")
 #dev.off()
 
 # Best Univariate graphs from blog.datascienceheroes.com
 # install.packages("funModeling")
-library(funModeling)
 funModeling::df_status(all_data)
 nrow(all_data)
 
@@ -147,7 +146,7 @@ table1_all_data <- arsenal::tableby(Match_Status ~
 # labels(table1_all_data)  #labels
 
 #padjust(table1, method = "bonferroni")   #Adjust for Bonferroni for multiple p-values
-# summary(table1_all_data, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology from 2015 to 2018', pfootnote=TRUE)
+summary(table1_all_data, text=T, title='Table 1:  Demographics of Applicants to Obstetrics and Gynecology from 2015 to 2018', pfootnote=TRUE)
 # 
 # arsenal::write2html(table1_all_data, ("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html"), total=FALSE, title = "Table 1", quiet = FALSE, theme = "yeti")   #Write to HTML
 # pander::openFileInOS("~/Dropbox/Nomogram/nomogram/results/all_data_table1.html")
@@ -309,7 +308,6 @@ plot(glmnet1)
 #The glmnet1 plot indcates that for high lambda error is very high, and the coefficients are restricted to be too small, and then at some point, it kind of levels off. This indicates that the full model is it is doing a good job.  Also, There’s two vertical lines. The one is at the minimum, and the other vertical line is at one standard error of the minimum, within one standard error. So it’s a slightly more restricted model that does almost as well as the minimum.
 
 c<-coef(glmnet1,s='lambda.min',exact=TRUE)
-
 inds<-which(c!=0)
 variables<-row.names(c)[inds]
 variables<-variables[variables %ni% '(Intercept)']

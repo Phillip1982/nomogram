@@ -95,10 +95,9 @@ funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results"
 funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
 
-Should we use means or medians in table 1? The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout.  
+Should we use means or medians in table 1? The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout. There is skew in age.   
 ```{r, message=FALSE, echo=FALSE}
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
-colnames(all_data)
 hist(all_data$Age)  #There is skew in age
 hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
 moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
@@ -201,9 +200,10 @@ lasso.mod <- caret::train(
   trControl = myControl)
 ```
 
-```{r}
+```{r, echo=TRUE, include=FALSE}
 # Print model to console
 (lasso.mod)
+
 #summary(lasso.mod)
 #lasso.mod[["results"]]
 lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
@@ -211,5 +211,57 @@ best <- lasso.mod$finalModel
 coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
 ```
 
+Plot the results of the lasso.mod so we can see if this is more ridge or more lasso.  0 = ridge regression and 1 = LASSO regression, here ridge is better
+```{r}
+plot(lasso.mod)
+```
+
+Plots the individual variables by lambda.  Saves the lasso.mod to an RDS file for later use.  
+```{r}
+plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
+legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .3)
+#https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+
+saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
+```
+
+Makes predictions of matching based on the lasso.mod using the training data.  
+```{r, echo=TRUE, warning=FALSE, include=FALSE}
+###
+predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
+```
+
+# GLMNet
+GLMnet accepts data in a matrix format so the data format was changed before giving it to glmnet.cv.  
+```{r, echo=TRUE, message=FALSE, include=TRUE}
+`%ni%`<-Negate(`%in%`)
+
+# save the outcome for the glmnet model, could use dummyVars with fullRan=FALSE can remove collinearity by removing male.gender so you are either male or female
+
+x <- model.matrix(train$Match_Status~., data=train)
+class(x)
+x <- x[,-1]  #Removes intercept
+
+glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=10,alpha=.5, family="binomial")
+plot(glmnet1)
+```
+
+# Variable selection using LASSO
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+c<-coef(glmnet1,s='lambda.min',exact=TRUE)
+inds<-which(c!=0)
+variables<-row.names(c)[inds]
+variables<-variables[variables %ni% '(Intercept)']
+variables  ###What variables should be included in the model per LASSO!!!
+```
+
+# Shift Gears: Use glmnet model on 2018 test data
+
+Here the code is creating a vector called predictorsNames that we can reuse in the future prn.  
+```{r}
+#Create predictorsNames variable
+outcomeName <- 'Match_Status'
+predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
+```
 
 
