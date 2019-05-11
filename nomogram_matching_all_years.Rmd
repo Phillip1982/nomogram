@@ -1,6 +1,6 @@
 ---
 title: "A model to predict chances of matching into Obstetrics and Gynecology Residency"
-author: "Tyler Muffly, MD"
+author: "Tyler M. Muffly, MD"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
   pdf_document: default
@@ -440,7 +440,7 @@ plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall 
 d <- datadist(test)
 options(datadist = "d")
 
-nomo.from.lrm.with.lasso.variables <- rms::nomogram(lrm.with.lasso.variables, 
+nomo.from.lrm.with.lasso.variables <- rms::nomogram(test.lrm.with.lasso.variables, 
          #lp.at = seq(-3,4,by=0.5),
         fun = plogis, 
         fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
@@ -451,9 +451,8 @@ nomo.from.lrm.with.lasso.variables <- rms::nomogram(lrm.with.lasso.variables,
         minlength = 9)
 nomogramEx(nomo=nomo.from.lrm.with.lasso.variables ,np=1,digit=2)  #Gives the polynomial formula
 
-#dev.off()  #Run this until null device = 1
 nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor",
-      cex.sub = 0.8, cex.axis=0.8, cex.main=1, cex.lab=1, ps=10, xfrac=.7,
+      cex.sub = 0.8, cex.axis=0.4, cex.main=1, cex.lab=0.3, ps=10, xfrac=.7,
                    #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
                    #col.conf=c('red','green'),
                    #conf.space=c(0.1,0.5),
@@ -461,6 +460,13 @@ nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor
                    col.grid = gray(c(0.8, 0.95)),
                    which="Match_Status")
 #print(nomo.from.lrm.with.lasso.variables)
+```
+
+#Calibration of the model based on the test data.  
+```{r}
+calib <- rms::calibrate(test.lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
+
+plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
 ```
 
 
