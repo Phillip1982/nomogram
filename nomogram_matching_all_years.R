@@ -17,6 +17,8 @@ set.seed(123456)
 setwd("~/Dropbox/Nomogram/nomogram")  #Set working directory
 
 ################################################################
+#Data cleaned in exploratory.io then brought here.  
+
 #Load Data
 download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
 all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
@@ -223,55 +225,7 @@ wilcox.test(all_data$USMLE_Step_1_Score ~ all_data$Match_Status) #SS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published ~ all_data$Match_Status) #NS
 wilcox.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts ~ all_data$Match_Status) #SS
 
-#Step two:  Variable Clustering, page 166 Harrel book, Heirarchical clustering
-vc <- Hmisc::varclus (~white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, sim = 'hoeffding', data=train)  #Variables that are on the same branch are closely related
-plot(vc)
-
-#Step three:  Principal Components Analysis
-train_pca <- caret::preProcess(dplyr::select(train, - Match_Status),
-                               method = c("center", "scale", "nzv", "pca"))
-train_pca
-train_pca$method
-train_pca$rotation
-
-
-#Step four: Redundancy Analysis
-redun <- Hmisc::redun(~ white_non_white + 
-                        Age + 
-                        Gender + 
-                        Couples_Match + 
-                        #Expected_Visa_Status_Dichotomized + 
-                        US_or_Canadian_Applicant + 
-                        #Medical_School_Type + 
-                        Medical_Education_or_Training_Interrupted + 
-                        Alpha_Omega_Alpha + 
-                        Military_Service_Obligation + 
-                        USMLE_Step_1_Score + 
-                        Military_Service_Obligation + 
-                        Count_of_Poster_Presentation + 
-                        Count_of_Oral_Presentation + 
-                        Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
-                        Count_of_Peer_Reviewed_Book_Chapter + 
-                        Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
-                        Count_of_Peer_Reviewed_Online_Publication +
-                        Visa_Sponsorship_Needed +
-                        #OBGYN_Grade +
-                        Medical_Degree, data = train, type="adjusted", r2 = 0.3, nk = 5, pr=TRUE, digits = 3, allcat = TRUE)    #only predictors
-print(redun, digits=3, long=TRUE)
-# 
-# Rendundant variables:
-#   US_or_Canadian_Applicant Count_of_Poster_Presentation Count_of_Peer_Reviewed_Journal_Articles_Abstracts
-
-#Step five:  Dr. Love's Spearman.  https://rpubs.com/TELOVE/project1-demo1_2019-432
-#A Spearman ρ2plot suggests that US or Canadian applicant is important, but it’s not clear that Count_of_oral_presentations will be particularly useful. In this example, note that we fit this plot without accounting for the missing values of any of these predictors, so that may have some effect.
-#dev.off()  
-tiff("~/Dropbox/Nomogram/nomogram/results/Spearman.tiff", width=400, height = 350, res = 50) 
-#https://blog.revolutionanalytics.com/2009/01/10-tips-for-making-your-r-graphics-look-their-best.html
-plot(spearman2(Match_Status ~ white_non_white+  Age+ Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted  + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, 
-               data = train))
-#dev.off()
-
-#Step six:LASSO, 
+#Factor Selection:  LASSO
 #https://rpubs.com/datascientiest/253917, 
 #https://campus.datacamp.com/courses/machine-learning-toolbox/tuning-model-parameters-to-improve-performance?ex=10
 #http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html#log
@@ -394,7 +348,7 @@ class(test)
 postResample(pred=predictions, obs=test)  ###NOT WORKING
 
 ###########################################
-####Model A - The Kitchen Sink Model ####  This is essentially a screening model with all variables.  
+####The Kitchen Sink Model ####  This is essentially a screening model with all variables.  
 d <- datadist(train)
 options(datadist = "d")
 
