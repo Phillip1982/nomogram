@@ -1,0 +1,215 @@
+---
+title: "A model to predict chances of matching into Obstetrics and Gynecology Residency"
+author: "Tyler Muffly, MD"
+date: "5/10/2019"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+# Objective:  We sought to construct and validate a model that predict a medical student's chances of matching into an obstetrics and gynecology residency.  The prediction target is matching.  
+
+Install and Load packages
+```{r setup, include=FALSE}
+if(!require(pacman))install.packages("pacman")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble")
+
+packrat_mode(on = TRUE)
+set.seed(123456)
+```
+
+Set working directory to files present in the Dropbox folder.
+```{r files, echo=FALSE}
+setwd("~/Dropbox/Nomogram/nomogram")  
+```
+
+Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. The data is contained in a data frame called all_data.  
+```{r pressure, echo=FALSE, include=FALSE}
+download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
+dplyr::glimpse(all_data)
+all_data <- all_data %>%
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
+```
+
+Bring in the columns that are desired for all_data.  
+```{r, echo=FALSE}
+all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
+```
+
+Add in nicer labels using Hmisc::label command.  Because the nomogram will be created from rms these labels will be helpful later on.  
+```{r, echo=FALSE}
+Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
+Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
+Hmisc::label(all_data$Age)    <- 'Age'
+units(all_data$Age) <- 'years'
+Hmisc::label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
+Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
+Hmisc::label(all_data$Gender) <- 'Gender'
+Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
+#Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
+Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+#Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
+Hmisc::label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
+Hmisc::label(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
+Hmisc::label(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
+Hmisc::label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
+Hmisc::label(all_data$white_non_white) <- 'Race' 
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
+Hmisc::label(all_data$Match_Status) <- 'Matching Status'
+```
+
+Univariate analysis of the data to show the distributions.  I set the cutpoints based on nothing really.I like this better than the base summary command.  
+```{r, echo=FALSE, include=FALSE}
+dd <- rms::datadist(all_data)
+options(datadist='dd')
+
+s <- summary(Match_Status ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = all_data)
+s
+```
+
+Set the Match_Status variable to be a number and a factor.  
+```{r, echo=FALSE, include=FALSE}
+all_data$Match_Status <- as.numeric(all_data$Match_Status)
+all_data$Match_Status
+all_data$Match_Status <- (all_data$Match_Status - 1)
+all_data$Match_Status #Outcome must be numeric
+```
+
+```{r, echo=FALSE, warning= FALSE, message=FALSE}
+plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
+```
+
+The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#funModeling::df_status(all_data)
+funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
+
+#Summary stats of the numerical data showing means, medians, skew
+#funModeling::profiling_num(all_data)
+
+#Shows the variable frequency charted by matching status
+#dev.off ()
+funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+```
+
+Should we use means or medians in table 1? The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout.  
+```{r, message=FALSE, echo=FALSE}
+#Examination of skewness and kurtosis for numeric values, Zhang book page 65
+colnames(all_data)
+hist(all_data$Age)  #There is skew in age
+hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
+moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
+moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the Step 1 score data.  
+#Therefore only use medians.  
+```
+
+Check to see if we have any missing data with Hmisc::naclus(all_data).  No missing data here.  
+```{r, message=FALSE, echo=FALSE}
+#Plotting NAs in the data, Page 302 of Harrell book
+na.patterns <- Hmisc::naclus(all_data)
+#na.patterns
+
+#Hmisc::naplot(na.patterns, 'na per var')  #Graphs the variables with missing data  
+#dev.off()
+
+plot(na.patterns) #Cool!! this shows who has the most missing data.  
+
+```
+
+Table 1: Applicant Descriptive Variables by Matching Success or Failure
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+table1_all_data <- arsenal::tableby(Match_Status ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=all_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+summary(table1_all_data, text=T, title='Table 1:  Applicant Descriptive Variables by Matching Success or Failure from 2015 to 2018', pfootnote=TRUE)
+```
+
+Split the data so that we can build a model with the 2015, 2016, and 2017 data and then test it with the 2018 data we reserved. 
+```{r, warning=FALSE, echo=TRUE, message=FALSE}
+train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
+nrow(train) 
+train <- train %>% select(-"Year")
+test <- filter(all_data, Year == c(2018)) #Test on 2018 data
+nrow(test)
+test <- test %>% select(-"Year")
+
+levels(train$Match_Status) <- c("NoMatch", "Matched")
+levels(test$Match_Status) <- c("NoMatch", "Matched")
+
+# Examine the proportions of the Match_Status class lable across the datasets.
+prop.table(table(all_data$Match_Status))       #Original data set proportion 
+prop.table(table(train$Match_Status)) #Train data set proportion
+prop.table(table(test$Match_Status))  #Test data set proportion
+```
+
+# Factor Selection using a LASSO model
+Start by creating a custom train control providing the number of cross-validations and setting the classProbs to TRUE for logistic regression.  
+```{r, echo=TRUE}
+# Create custom trainControl: myControl
+myControl <- trainControl(
+  method = "cv",
+  number = 10,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE, # IMPORTANT!
+  verboseIter = FALSE)
+
+train$Match_Status <- as.factor(train$Match_Status)
+test$Match_Status <- as.factor(test$Match_Status)
+
+#Levels of the target outcome variable for glmnet need to be words and not numbers.  
+levels(train$Match_Status) <- c("NoMatch", "Matched")
+levels(test$Match_Status) <- c("NoMatch", "Matched")
+```
+
+Create the LASSO using glmnet within the caret package.  Here we are solely using the train dataset to determine what varaiables predict the outcome.  
+```{r}
+# Train glmnet with custom trainControl and tuning: model
+lasso.mod <- caret::train(
+  Match_Status ~ .,
+  data = train,
+  family = "binomial",
+  tuneGrid = expand.grid(
+    alpha = 0:1,
+    lambda = seq(0.0001, 1, length = 20)
+  ),
+  method = "glmnet",
+  metric = "ROC",
+  trControl = myControl)
+```
+
+```{r}
+# Print model to console
+(lasso.mod)
+#summary(lasso.mod)
+#lasso.mod[["results"]]
+lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
+best <- lasso.mod$finalModel
+coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
+```
+
+
+
