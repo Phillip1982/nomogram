@@ -378,14 +378,14 @@ test.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Al
 
 ```{r}
 #lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
-train.model.stats <- as.data.frame(lrm.with.lasso.variables$stats)
-knitr::kable(train.model.stats, caption = "Performance statistics of the Training Model")
+test.model.stats <- as.data.frame(test.lrm.with.lasso.variables$stats)
+knitr::kable(test.model.stats, caption = "Performance statistics of the Testing Model")
 ```
 
 
 ROC: Type 1 using ggplot with nice controls
 ```{r}
-prob <- predict(glm.with.lasso.variables, data = na.omit(test), type="response")
+prob <- predict(test.glm.with.lasso.variables, data = na.omit(test), type="response")
 pred <- prediction(prob, na.omit(test)$Match_Status)
 # rest of this doesn't need much adjustment except for titles
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
