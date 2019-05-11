@@ -82,27 +82,17 @@ all_data$Match_Status #Outcome must be numeric
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 ```
 
-The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-#funModeling::df_status(all_data)
-funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
-
-#Summary stats of the numerical data showing means, medians, skew
-#funModeling::profiling_num(all_data)
-
-#Shows the variable frequency charted by matching status
-#dev.off ()
-funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
-```
 
 Should we use means or medians in table 1? The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout. There is skew in age.   
 ```{r, message=FALSE, echo=FALSE}
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
 hist(all_data$Age)  #There is skew in age
+```
+```{r}
 hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
 moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
 moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the Step 1 score data.  
-#Therefore only use medians.  
+#Therefore only use medians.
 ```
 
 Check to see if we have any missing data with Hmisc::naclus(all_data).  No missing data here.  
@@ -265,3 +255,19 @@ predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome fro
 ```
 
 
+
+
+
+# Appendix
+The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#funModeling::df_status(all_data)
+funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
+
+#Summary stats of the numerical data showing means, medians, skew
+#funModeling::profiling_num(all_data)
+
+#Shows the variable frequency charted by matching status
+#dev.off ()
+funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+```
