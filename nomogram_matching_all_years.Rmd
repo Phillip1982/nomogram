@@ -78,7 +78,7 @@ all_data$Match_Status <- (all_data$Match_Status - 1)
 all_data$Match_Status #Outcome must be numeric
 ```
 
-```{r, echo=FALSE, warning= FALSE, message=FALSE}
+```{r, echo=FALSE, warning= FALSE, message=FALSE, include=FALSE}
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 ```
 
@@ -155,6 +155,62 @@ prop.table(table(train$Match_Status)) #Train data set proportion
 prop.table(table(test$Match_Status))  #Test data set proportion
 ```
 
+#Relaxed Cubic Splines For Continuous Variables
+```{r, echo=TRUE, include=FALSE}
+#Age Splines
+Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
+#Predictions with group size of 500 patients (triangles) and location of knot (arrows).
+```
+
+```{r, echo=FALSE, include=FALSE}
+#USMLE_Step_1_Score Splines
+Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
+
+
+#Count of Posters
+Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
+
+#Count of Oral Presentations
+Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
+```
+
+#Create a Kitchen Sink model with all factors first.  This is essentially a screening model with all variables. I relaxed the cubic splines with the guidance from above.  
+```{r}
+d <- datadist(train)
+options(datadist = "d")
+
+kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+
+kitchen.sink
+```
+
+```{r}
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
+knitr::kable(kitchen.sink.model.stats, caption = "Performance statistics of the Kitchen Sink Model Using All Variables")
+```
+
+Evaluating the signficance of kitchen.sink variables using text and visuals.  According to the ANOVA: USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are predictors.  
+```{r, echo=TRUE, message=FALSE}
+plot(anova(kitchen.sink), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
+```
+
+
+
+
+#Factor Selection using Fast Backwards Selection on kitchen.sink model using rms to do a ROUGH evaluation.  
+```{r, echo=TRUE}
+rms::fastbw(kitchen.sink, rule = "aic")
+```
+
 # Factor Selection using a LASSO model
 Start by creating a custom train control providing the number of cross-validations and setting the classProbs to TRUE for logistic regression.  
 ```{r, echo=TRUE}
@@ -206,7 +262,7 @@ Plot the results of the lasso.mod so we can see if this is more ridge or more la
 plot(lasso.mod)
 ```
 
-Plots the individual variables by lambda.  Saves the lasso.mod to an RDS file for later use.  
+Plot the individual variables by lambda.  Saves the lasso.mod to an RDS file for later use.  
 ```{r}
 plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
 legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .3)
@@ -221,7 +277,7 @@ Makes predictions of matching based on the lasso.mod using the training data.
 predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
 ```
 
-# GLMNet
+# GLMNet to do factor selection with the previously made LASSO model
 GLMnet accepts data in a matrix format so the data format was changed before giving it to glmnet.cv.  
 ```{r, echo=TRUE, message=FALSE, include=TRUE}
 `%ni%`<-Negate(`%in%`)
@@ -236,31 +292,150 @@ glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=10,alpha=.
 plot(glmnet1)
 ```
 
-# Variable selection using LASSO
+# Variable selection using LASSO in the train dataset
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 c<-coef(glmnet1,s='lambda.min',exact=TRUE)
 inds<-which(c!=0)
 variables<-row.names(c)[inds]
 variables<-variables[variables %ni% '(Intercept)']
-variables  ###What variables should be included in the model per LASSO!!!
+#variables  ###What variables should be included in the model per LASSO!!!
+```
+```{r, results="asis"}
+knitr::kable(variables, caption = "Variables Chosen by LASSO to Predict Matching into OBGYN based on the Train Data (2015, 2016, 2017)")
 ```
 
-# Shift Gears: Use glmnet model on 2018 test data
+#Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
+```{r, echo=TRUE, results="asis"}
+d <- datadist(test)
+options(datadist = "d")
 
-Here the code is creating a vector called predictorsNames that we can reuse in the future prn.  
-```{r}
+lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+train.model.stats <- as.data.frame(lrm.with.lasso.variables$stats)
+knitr::kable(train.model.stats, caption = "Performance statistics of the Training Model")
+```
+
+
+```{r, echo=FALSE}
+lrm.with.lasso.variables
+#dev.off()
+plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
+```
+
+
+```{r, include=T}
+summary(lrm.with.lasso.variables)
+```
+
+#Table 2 of odds ratios in graph form in the train dataset.  
+```{r, echo=TRUE}
+plot(summary(lrm.with.lasso.variables), cex=0.5, cex.lab=0.7, cex.axis = 0.7)
+```
+
+Odds ratios for train data
+```{r, results="asis"}
+oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
+#I'm not sure how to set the significant digits
+knitr::kable(oddsratios)
+```
+
+
+
+
+# Shift Gears: Use glmnet model on 2018 TEST data
+
+Here the code is creating a vector called predictorsNames so that we can reuse the model by changing the variables in predictorsNames in the future prn.  Run the 2018 data through the train model.  
+```{r, warning=FALSE, message=FALSE}
 #Create predictorsNames variable
 outcomeName <- 'Match_Status'
 predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
+# get predictions on your testing data
+b <- model.matrix(test$Match_Status~., data=test) #x <- model.matrix(train$Match_Status~., data=train)
+a <- b[,-1]  #Removes intercept from the matrix as we did for model
+
+predictions<-predict(object = glmnet1, newx=a, s="lambda.min", family = "binomial")  #What is the matrix?
+#predictions
+
+d <- as.data.frame(test[,outcomeName])
+levels(d$Match_Status) <- c("NoMatch", "Matched")
+
+test$Match_Status <- as.numeric(test$Match_Status)  #pROC only accepts numeric variables, not a matrix
+test$Match_Status <- (test$Match_Status - 1)
+predictions <- as.numeric(predictions)
+```
+
+First, we need to fit lrm.with.lasso.variables in GLM, rather than rms to get the AUC.  There is probably a better way to do this.  Using the test data set.  Also built the same model in lrm.  
+```{r, echo=TRUE, warning=FALSE}
+test$Match_Status <- as.integer(test$Match_Status+2)
+test$Match_Status <- as.factor(test$Match_Status)
+
+test.glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+                   data = test, family = "binomial"(link=logit))  
+
+test.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+```
+
+```{r}
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+train.model.stats <- as.data.frame(lrm.with.lasso.variables$stats)
+knitr::kable(train.model.stats, caption = "Performance statistics of the Training Model")
 ```
 
 
+ROC: Type 1 using ggplot with nice controls
+```{r}
+prob <- predict(glm.with.lasso.variables, data = na.omit(test), type="response")
+pred <- prediction(prob, na.omit(test)$Match_Status)
+# rest of this doesn't need much adjustment except for titles
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+auc <- performance(pred, measure="auc")
+auc <- round(auc@y.values[[1]],3)
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="GLM")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(aes(y=tpr)) +
+  labs(title = paste0("ROC Curve with area under the curve = ", auc),
+       subtitle = "Model A for test data")
+```
+
+ROC Curve type 2 with nice labels on the x and y
+```{r}
+pred <- prediction(prob, test$Match_Status)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf)
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+auc  
+```
+
+ROC Curve Type 3 with nice diagnal line but half of the formula printed
+```{r}
+#library(rJava)
+#Deducer::rocplot(glm.with.lasso.variables, diag = TRUE, prob.label.digits = TRUE, AUC = TRUE)
+```
+
+ROC Curve Type 4, ROC in color
+```{r}
+perf <- performance(pred, 'tpr','fpr')
+plot(perf, colorize = TRUE, text.adj = c(-0.2,1.7), main="Receiver-Operator Curve for Model A")
+
+#Plots of Sensitivity and Specificity
+perf1 <- performance(pred, "sens", "spec")
+plot(perf1, colorize = TRUE, text.adj = c(-0.2,1.7), main="Sensitivity and Specificity for Model A")
+
+## precision/recall curve (x-axis: recall, y-axis: precision)
+perf2 <- performance(pred, "prec", "rec")
+plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall for Model A")
+```
 
 
 
 # Appendix
 The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #funModeling::df_status(all_data)
 funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
 
