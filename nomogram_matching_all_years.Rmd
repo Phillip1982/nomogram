@@ -29,7 +29,7 @@ opts_knit$set(root.dir = normalizePath("../"),
 Install and Load packages
 ```{r setup, include=FALSE}
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc")
 
 packrat_mode(on = TRUE)
 set.seed(123456)
@@ -169,7 +169,9 @@ levels(test$Match_Status) <- c("NoMatch", "Matched")
 
 # Examine the proportions of the Match_Status class lable across the datasets.
 prop.table(table(all_data$Match_Status))       #Original data set proportion 
+
 prop.table(table(train$Match_Status)) #Train data set proportion
+
 prop.table(table(test$Match_Status))  #Test data set proportion
 ```
 
@@ -225,7 +227,7 @@ plot(anova(kitchen.sink), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
 
 
 
-#Factor Selection using Fast Backwards Selection on kitchen.sink model using rms to do a ROUGH evaluation.  
+#Factor Selection using Fast Backwards Selection on kitchen.sink model using rms to do a ROUGH evaluation.  Stepwise fitting methods are heavily criticized because when you have a long list of candidate predictors, it’s computationally infeasible to try all possible combinations.
 ```{r, echo=TRUE}
 rms::fastbw(kitchen.sink, rule = "aic")
 ```
@@ -310,6 +312,7 @@ x <- x[,-1]  #Removes intercept
 glmnet1<-cv.glmnet(x=x,y=train$Match_Status,type.measure='mse',nfolds=10,alpha=.5, family="binomial")
 plot(glmnet1)
 ```
+If you look at this graph we ran the model with a range of values for lambda and saw which returned the lowest cross-validated error. You'll see that our cross-validated error remains consistent until we hit the dotted lines, where we start to see our model perform very poorly due to underfitting with misclassification error.  
 
 # Variable selection using LASSO in the train dataset
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -322,6 +325,89 @@ variables<-variables[variables %ni% '(Intercept)']
 ```{r, results="asis"}
 knitr::kable(variables, caption = "Variables Chosen by LASSO to Predict Matching into OBGYN based on the Train Data (2015, 2016, 2017)")
 ```
+#Measuring Strength and Direction of Predictors with the Summary Function
+```{r}
+#https://amunategui.github.io/supervised-summarizer/index.html
+GetSummaryPlot <- function(objdfscaled0, objdfscaled1, predictorName, plotit=TRUE) {
+     require(ggplot2)
+    
+     stats0 <- (summary(objdfscaled0[,predictorName]))
+     stats0 <- c(stats0[1:6])
+     stats1 <- (summary(objdfscaled1[,predictorName]))
+     stats1 <- c(stats1[1:6])
+     stats <- data.frame('ind'=c(1:6), 'stats1'=stats1,'stats0'=stats0)
+    
+     spread <- ((stats1[[1]] - stats0[[1]]) +
+                     (stats1[[2]] - stats0[[2]]) +
+                     (stats1[[3]] - stats0[[3]]) +
+                     (stats1[[4]] - stats0[[4]]) +
+                     (stats1[[5]] - stats0[[5]]) +
+                     (stats1[[6]] - stats0[[6]]))
+    
+     if (plotit) {
+          print(paste('Scaled spread:',spread))
+          p <- ggplot(data=stats, aes(ind)) +
+               geom_line(aes(y = stats1, colour = "stats1")) +
+               geom_line(aes(y = stats0, colour = "stats0")) +
+               scale_x_discrete(breaks = 1:6,
+                                labels=c("min","1q","median","mean","3q","max")) +
+               ylab(predictorName) + xlab(paste('Spread:',spread))
+          return (p)
+     } else {
+          return (spread)
+     }
+}
+
+#Create predictorsNames variable
+outcomeName <- 'Match_Status'
+predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
+# Temporarily remove the outcome variable before scaling the data set
+outcomeValue <- titanicDF$Survived
+titanicDF <- all_data
+dim(titanicDF)
+
+# binarize all factors
+require(caret)
+titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
+titanicDF <- as.data.frame(predict(titanicDummy,titanicDF))
+head(titanicDF)
+
+# scale returns a matrix so we need to tranform it back to a data frame
+scaled_titanicDF <- as.data.frame(scale(titanicDF))
+scaled_titanicDF$Match_Status <- outcomeValue
+# split your data sets
+scaled_titanicDF_0 <- scaled_titanicDF[scaled_titanicDF[,outcomeName]==0,]
+scaled_titanicDF_1 <- scaled_titanicDF[scaled_titanicDF[,outcomeName]==1,]
+    
+outcomeName <- 'Match_Status'
+predictorNames <- names(titanicDF)[!names(titanicDF) %in% outcomeName]
+
+for (predictorName in predictorNames)
+        print(paste(predictorName,':',GetSummaryPlot(scaled_titanicDF_0,
+                scaled_titanicDF_1, predictorName, plotit=FALSE)))
+
+
+summaryImportance <- c()
+variableName <- c()
+for (predictorName in predictorNames) {
+     summaryImportance <-  c(summaryImportance, GetSummaryPlot(scaled_titanicDF_0, scaled_titanicDF_1, predictorName, plotit=FALSE))
+     variableName <- c(variableName, predictorName)
+}
+results <- data.frame('VariableName'=variableName, 'Weight'=summaryImportance)
+
+# display variable importance on a +/- scale 
+results <- results[order(results$Weight),]
+results <- results[(results$Weight != 0),]
+
+par(mar=c(5,15,4,2)) # increase y-axis margin. 
+xx <- barplot(results$Weight, width = 0.85)
+           #main = paste("Variable Importance - Titanic"), horiz = T, 
+           #xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
+           #col = ifelse((results$Weight > 0), 'blue', 'red')) 
+axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
+
+```
+
 
 #Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
 ```{r, echo=TRUE, results="asis"}
@@ -357,8 +443,6 @@ oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(lrm.with.lasso.variabl
 #I'm not sure how to set the significant digits
 knitr::kable(oddsratios, digits = 2)
 ```
-
-
 
 
 # Shift Gears: Use glmnet model on 2018 TEST data
@@ -497,9 +581,25 @@ calib <- rms::calibrate(test.lrm.with.lasso.variables, method = "boot", boot=100
 plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
 ```
 
+#Abstract DRAFT
+Background:  A model that predicts a medical student's chances of matching into an obstetrics and gynecology residency may facilitate improved counseling and fewer unmatched medical students.  
 
-# Appendix of Distributions
+Objective:  We sought to construct and validate a model that predicts a medical student's chance of matching into obstetrics and gynecology residency.  
+
+Study Design:  In all, `r nrow(all_data)` medical students applied to a residency in Obstetrics and Gynecology at the University of Colorado from 2015 to 2018 were analyzed.  The data set was splint into a model training cohort of `r nrow(train)` who applied in 2015, 2016, and 2017 and a separate validation cohort of `r nrow(test)` in 2018.  In all, `r ncol(all_data)` candidate predictors for matching were collected.  Multiple logistic models were fit onto the training choort to predict matching.  Variables were removed using least absolute shrinkage and selection operator reduction to find the best parsimonious model.  Model discrimination was measured using the concordance index.  The model was internally valideated using 1,000 bootstrapped samples and temporarly validated by testing the model's performance in the validation cohort.  Calibration curves were plotted to inform educators about the accuracy of predicted probabilities.  
+
+Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((test.lrm.with.lasso.variables$stats[6]),2)`).  
+
+#Prose of the paper DRAFT
+Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology residency at the University of Colorado from 2015 to 2018.  The overall mean rate of matching in the training cohort was `r table(train$Match_Status)[[2]]` of `r nrow(train)` was (`r round((prop.table(table(train$Match_Status))[[2]]*100),1)`%).  
+
+The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the training cohort are presented in Supplemental Table 1.  To identify predictors from the candidates we employed least absolute shrinkage and selection operator (LASSO).  Regularisation techniques change how the model is fit by adding a penalty for every additional parameter you have in the model.  
+
+`r length(variables)` variables were included within the final model.  
+
+# Appendix of Univariate Analysis
 The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #funModeling::df_status(all_data)
 funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
@@ -512,6 +612,38 @@ funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results"
 #TURN BACK ON AT THE END
 #funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
+
+#Supplemental Table:  Descriptive analysis of all variables considered in the training set along with their association to matching.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+table1_all_data <- arsenal::tableby(Match_Status ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=train, control = tableby.control(test = TRUE, total = TRUE, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+
+summary(table1_all_data, text=T, title='Supplemental Table: Descriptive analysis of all variables considered in the training set along with their association to matching', pfootnote=TRUE)
+```
+
 
 ```{r}
 sessionInfo()
