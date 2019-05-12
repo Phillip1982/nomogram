@@ -3,11 +3,27 @@ title: "A model to predict chances of matching into Obstetrics and Gynecology Re
 author: "Tyler M. Muffly, MD"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
-  pdf_document: default
+  pdf_document: 
+    highlight: tango
+    df_print: kable
+    toc: true
+    pandoc_args: ["--wrap=none", "--top-level-division=chapter"]
   word_document: default
-  html_document: default
+  html_document:
+    toc: true
+    toc_depth: 2
+    dev: 'svg'
 fontsize: 12pt
+geometry: margin=1in
 ---
+```{r knitr_options, echo=FALSE, include=FALSE}
+library(knitr)
+opts_knit$set(root.dir = normalizePath("../"), 
+              fig.width=8, fig.height=5, 
+               echo=TRUE, 
+               warning=FALSE, message=FALSE, 
+               cache=TRUE)
+```
 # Objective:  We sought to construct and validate a model that predict a medical student's chances of matching into an obstetrics and gynecology residency.  The prediction target is matching.  
 
 Install and Load packages
@@ -79,7 +95,7 @@ all_data$Match_Status <- (all_data$Match_Status - 1)
 all_data$Match_Status #Outcome must be numeric
 ```
 
-```{r, echo=FALSE, warning= FALSE, message=FALSE, include=FALSE}
+```{r, echo=FALSE, warning= FALSE, message=FALSE, include=FALSE, fig.width=7, fig.asp=1}
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 ```
 
@@ -97,7 +113,7 @@ moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the 
 ```
 
 Check to see if we have any missing data with Hmisc::naclus(all_data).  No missing data here.  
-```{r, message=FALSE, echo=FALSE}
+```{r, message=FALSE, echo=FALSE,  fig.width=7, fig.asp=1}
 #Plotting NAs in the data, Page 302 of Harrell book
 na.patterns <- Hmisc::naclus(all_data)
 #na.patterns
@@ -139,7 +155,6 @@ summary(table1_all_data, text=T, title='Table 1:  Applicant Descriptive Variable
 ```
 
 
-
 Split the data so that we can build a model with the 2015, 2016, and 2017 data and then test it with the 2018 data we reserved. 
 ```{r, warning=FALSE, echo=TRUE, message=FALSE}
 train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
@@ -159,7 +174,7 @@ prop.table(table(test$Match_Status))  #Test data set proportion
 ```
 
 #Relaxed Cubic Splines For Continuous Variables
-```{r, echo=TRUE, include=FALSE}
+```{r, echo=TRUE, include=FALSE, fig.width=7, fig.asp=1}
 #Age Splines
 Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
@@ -167,7 +182,7 @@ Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status, model = "logis
 #Predictions with group size of 500 patients (triangles) and location of knot (arrows).
 ```
 
-```{r, echo=FALSE, include=FALSE}
+```{r, echo=FALSE, include=FALSE,  fig.width=7, fig.asp=1}
 #USMLE_Step_1_Score Splines
 Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
 
@@ -195,6 +210,7 @@ kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Co
 kitchen.sink
 ```
 
+
 ```{r, warning=FALSE}
 #lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
 kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
@@ -202,7 +218,7 @@ knitr::kable(kitchen.sink.model.stats, caption = "Performance statistics of the 
 ```
 
 Evaluating the signficance of kitchen.sink variables using text and visuals.  According to the ANOVA: USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are predictors.  
-```{r, echo=TRUE, message=FALSE}
+```{r, echo=TRUE, message=FALSE,fig.width=7, fig.asp=1}
 plot(anova(kitchen.sink), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
 ```
 
@@ -261,14 +277,14 @@ coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
 ```
 
 Plot the results of the lasso.mod so we can see if this is more ridge or more lasso.  0 = ridge regression and 1 = LASSO regression, here ridge is better
-```{r}
+```{r, fig.width=7, fig.asp=1}
 plot(lasso.mod)
 ```
 
 Plot the individual variables by lambda.  Saves the lasso.mod to an RDS file for later use.  
-```{r}
+```{r,  fig.asp=1}
 plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
-legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .3)
+#legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .6)
 #https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
 
 saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
@@ -319,7 +335,7 @@ knitr::kable(broom::tidy(lrm.with.lasso.variables$stats), digits =2, caption = "
 ```
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE,  fig.width=7, fig.asp=1}
 lrm.with.lasso.variables
 #dev.off()
 plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
@@ -331,7 +347,7 @@ summary(lrm.with.lasso.variables)
 ```
 
 #Table 2 of odds ratios in graph form in the train dataset.  
-```{r, echo=TRUE}
+```{r, echo=TRUE,  fig.width=7, fig.asp=1}
 plot(summary(lrm.with.lasso.variables), cex=0.5, cex.lab=0.7, cex.axis = 0.7)
 ```
 
@@ -433,7 +449,7 @@ perf2 <- performance(pred, "prec", "rec")
 plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall for Model A")
 ```
 
-```{r}
+```{r,  fig.width=7, fig.asp=1}
 ###NOMOGRAM 
 #fun.at - Demarcations on the function axis: "Matching into obgyn"
 #lp=FALSE so we don't have the logistic progression
@@ -462,8 +478,20 @@ nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor
 #print(nomo.from.lrm.with.lasso.variables)
 ```
 
-#Calibration of the model based on the test data.  
-```{r}
+#Calibration of the model based on the test data.  The ticks across the x-axis represent the frequency distribution (may be called a rug plot) of the predicted probabilities. This is a way to see where there is sparsity in your predictions and where there is a relative abundance of predictions in a given area of predicted probabilities.
+
+The "Apparent" line is essentially the in-sample calibration.
+
+The "Ideal" line represents perfect prediction as the predicted probabilities equal the observed probabilities.
+
+The "Bias Corrected" line is derived via a resampling procedure to help add "uncertainty" to the calibration plot to get an idea of how this might perform "out-of-sample" and adjusts for "optimistic" (better than actual) calibration that is really an artifact of fitting a model to the data at hand. This is the line we want to look at to get an idea about generalization (until we have new data to try the model on).
+
+When either of the two lines is above the "Ideal" line, this tells us the model underpredicts in that range of predicted probabilities. When either line is below the "Ideal" line, the model overpredicts in that range of predicted probabilities.
+
+Applying to your specific plot, it appears most of the predicted probabilities are in the higher end (per rug plot). The model overall appears to be reasonably well calibrated based on the Bias-Corrected line closely following the Ideal line; there is some underprediction at lower predicted probabilities because the Bias-Corrected line is above the Ideal line around < 0.3 predicted probability.
+
+The mean absolute error is the "average" absolute difference (disregard a positive or negative error) between predicted probability and actual probability. Ideally, we want this to be small (0 would be perfect indicating no error). This seems small in your plot, but may be situation dependent on how small is small. 
+```{r,  fig.width=7, fig.asp=1}
 calib <- rms::calibrate(test.lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
 
 plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
@@ -485,7 +513,10 @@ funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results"
 #funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
 
+```{r}
 sessionInfo()
+```
+
 
 
 
