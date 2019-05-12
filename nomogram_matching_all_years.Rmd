@@ -362,12 +362,14 @@ GetSummaryPlot <- function(objdfscaled0, objdfscaled1, predictorName, plotit=TRU
 outcomeName <- 'Match_Status'
 predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
 # Temporarily remove the outcome variable before scaling the data set
-outcomeValue <- titanicDF$Survived
+outcomeValue <- titanicDF$Match_Status
 titanicDF <- all_data
 dim(titanicDF)
 
 # binarize all factors
 require(caret)
+titanicDF$Match_Status <- as.numeric(titanicDF$Match_Status)
+levels((titanicDF$Match_Status))
 titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
 titanicDF <- as.data.frame(predict(titanicDummy,titanicDF))
 head(titanicDF)
@@ -400,11 +402,12 @@ results <- results[order(results$Weight),]
 results <- results[(results$Weight != 0),]
 
 par(mar=c(5,15,4,2)) # increase y-axis margin. 
-xx <- barplot(results$Weight, width = 0.85)
-           #main = paste("Variable Importance - Titanic"), horiz = T, 
-           #xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
-           #col = ifelse((results$Weight > 0), 'blue', 'red')) 
+xx <- barplot(results$Weight, width = 0.85, 
+              main = paste("Variable Importance - Matching"), horiz = T, 
+              xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
+              col = ifelse((results$Weight > 0), 'blue', 'red')) 
 axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
+
 
 ```
 
