@@ -130,7 +130,7 @@ plot(na.patterns) #Cool!! this shows who has the most missing data.
 
 ```
 
-Table 1: Applicant Descriptive Variables by Matching Success or Failure
+Table 1: Applicant Descriptive Variables by Matching Success (1) or Failure (0)
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 table1_all_data <- arsenal::tableby(Match_Status ~
                                       white_non_white + 
@@ -410,7 +410,7 @@ results <- results[(results$Weight != 0),]
 
 par(mar=c(5,15,4,2)) # increase y-axis margin. 
 xx <- barplot(results$Weight, width = 0.85, 
-              main = paste("Variable Importance - Matching"), horiz = T, 
+              main = paste("Variable Importance of all_data - Matching"), horiz = T, 
               xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
               col = ifelse((results$Weight > 0), 'blue', 'red')) 
 axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
@@ -420,7 +420,7 @@ axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.ax
 
 
 #Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
-```{r, echo=TRUE, results="asis"}
+```{r, echo=TRUE, results="asis", warning=FALSE}
 d <- datadist(test)
 options(datadist = "d")
 
@@ -438,7 +438,7 @@ plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
 ```
 
 
-```{r, include=T}
+```{r, include=F}
 summary(lrm.with.lasso.variables)
 ```
 
@@ -620,12 +620,12 @@ The funModeling package will first give distributions for numerical data and fin
 funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
 
 #Summary stats of the numerical data showing means, medians, skew
-#funModeling::profiling_num(all_data)
+funModeling::profiling_num(all_data)
 
 #Shows the variable frequency charted by matching status
 
 #TURN BACK ON AT THE END
-#funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
 
 #Supplemental Table:  Descriptive analysis of all variables considered in the training set along with their association to matching.  
@@ -664,6 +664,19 @@ summary(table1_all_data, text=T, title='Supplemental Table: Descriptive analysis
 sessionInfo()
 ```
 
+```{r}
+#DynNom
+DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+                   data = test, x = TRUE, y= TRUE)  
+
+#install.packages('rsconnect')
+library(rsconnect)
+DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  #Not workings
+
+#Publish to shiny
+getwd()
+DynNom::DNbuilder(model = DynNom.model.lrm, data = train)
+```
 
 
 
