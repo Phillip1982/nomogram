@@ -13,6 +13,7 @@ output:
     toc: true
     toc_depth: 2
     dev: 'svg'
+    code_folding: show
 fontsize: 12pt
 geometry: margin=1in
 ---
@@ -23,6 +24,7 @@ opts_knit$set(root.dir = normalizePath("../"),
                echo=TRUE, 
                warning=FALSE, message=FALSE, 
                cache=TRUE)
+options(scipen = 6)
 ```
 # Objective:  We sought to construct and validate a model that predict a medical student's chances of matching into an obstetrics and gynecology residency.  The prediction target is matching.  
 
@@ -288,6 +290,7 @@ Plot the individual variables by lambda.  Saves the lasso.mod to an RDS file for
 plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
 #legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .6)
 #https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+colnames(train[1:17])
 
 saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
 ```
@@ -326,6 +329,7 @@ variables<-variables[variables %ni% '(Intercept)']
 knitr::kable(variables, caption = "Variables Chosen by LASSO to Predict Matching into OBGYN based on the Train Data (2015, 2016, 2017)")
 ```
 #Measuring Strength and Direction of Predictors with the Summary Function
+I plotted everything on a bar graph so we can easily compare the strongest predictors and the direction they affect the model:
 ```{r}
 #https://amunategui.github.io/supervised-summarizer/index.html
 GetSummaryPlot <- function(objdfscaled0, objdfscaled1, predictorName, plotit=TRUE) {
@@ -362,14 +366,14 @@ GetSummaryPlot <- function(objdfscaled0, objdfscaled1, predictorName, plotit=TRU
 outcomeName <- 'Match_Status'
 predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
 # Temporarily remove the outcome variable before scaling the data set
-outcomeValue <- titanicDF$Match_Status
 titanicDF <- all_data
+outcomeValue <- titanicDF$Match_Status
 dim(titanicDF)
 
 # binarize all factors
 require(caret)
 titanicDF$Match_Status <- as.numeric(titanicDF$Match_Status)
-levels((titanicDF$Match_Status))
+levels(titanicDF$Match_Status)
 titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
 titanicDF <- as.data.frame(predict(titanicDummy,titanicDF))
 head(titanicDF)
@@ -565,7 +569,8 @@ nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor
 #print(nomo.from.lrm.with.lasso.variables)
 ```
 
-#Calibration of the model based on the test data.  The ticks across the x-axis represent the frequency distribution (may be called a rug plot) of the predicted probabilities. This is a way to see where there is sparsity in your predictions and where there is a relative abundance of predictions in a given area of predicted probabilities.
+#Calibration of the model based on the test data.  
+The ticks across the x-axis represent the frequency distribution (may be called a rug plot) of the predicted probabilities. This is a way to see where there is sparsity in your predictions and where there is a relative abundance of predictions in a given area of predicted probabilities.
 
 The "Apparent" line is essentially the in-sample calibration.
 
@@ -598,7 +603,9 @@ Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology res
 
 The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the training cohort are presented in Supplemental Table 1.  To identify predictors from the candidates we employed least absolute shrinkage and selection operator (LASSO).  Regularisation techniques change how the model is fit by adding a penalty for every additional parameter you have in the model.  
 
-`r length(variables)` variables were included within the final model.  
+`r length(variables)` variables were included within the final model.  Applicants from the United States or Canada, high USMLE Step 1 scores, female gender, White race, no visa sponsorship needed, membership in Alpha Omega Alpha, no interruption of medical training, couples matching, and allopathic medical training increased the chances of matching into OBGYN.  In contrast, more oral presentations, increasing age, a higher number of peer-reviewed online publications, an increased number of authored book chapters, and a higher count of poster presentations all decreased the probability of matching into OBGYN (table 2).  The nomogram illustrates the strength of association of the predictors to the outcome as well as the nonlinear associations between age, count of Oral Presentations, count of peer−reviewed book chapters and the chances of matching (Figure 1).  
+
+
 
 # Appendix of Univariate Analysis
 The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
