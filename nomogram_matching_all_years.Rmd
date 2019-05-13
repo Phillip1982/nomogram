@@ -4,7 +4,7 @@ author: "Tyler M. Muffly, MD"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
   pdf_document: 
-    highlight: tango
+    latex_engine: xelatex
     df_print: kable
     toc: true
     pandoc_args: ["--wrap=none", "--top-level-division=chapter"]
@@ -17,6 +17,10 @@ output:
 fontsize: 12pt
 geometry: margin=1in
 ---
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
 ```{r knitr_options, echo=FALSE, include=FALSE}
 library(knitr)
 opts_knit$set(root.dir = normalizePath("../"), 
@@ -28,7 +32,7 @@ options(scipen = 6)
 ```
 # Objective:  We sought to construct and validate a model that predict a medical student's chances of matching into an obstetrics and gynecology residency.  The prediction target is matching.  
 
-Install and Load packages
+Install and Load packages.  See Session information at the end.  
 ```{r setup, include=FALSE}
 if(!require(pacman))install.packages("pacman")
 pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc")
@@ -42,7 +46,7 @@ Set working directory to files present in the Dropbox folder.
 setwd("~/Dropbox/Nomogram/nomogram")  
 ```
 
-Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. The data is contained in a data frame called all_data.  
+Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Applicants who were in the SOAP and applied to the preliminary spot were determined to be unmatched.  The data is contained in a data frame called all_data.  
 ```{r pressure, echo=FALSE, include=FALSE}
 download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
 all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
@@ -56,7 +60,6 @@ Bring in the columns that are desired for all_data.
 all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
 ```
 
-Add in nicer labels using Hmisc::label command.  Because the nomogram will be created from rms these labels will be helpful later on.  
 ```{r, echo=FALSE}
 Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
 Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
@@ -80,7 +83,7 @@ Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_th
 Hmisc::label(all_data$Match_Status) <- 'Matching Status'
 ```
 
-Univariate analysis of the data to show the distributions.  I set the cutpoints based on nothing really.I like this better than the base summary command.  
+Univariate analysis of the data to show the distributions.  I set the cutpoints based on nothing really.I like this better than the base summary command.  See the Appendix at the end of the document for univariate distributions.  
 ```{r, echo=FALSE, include=FALSE}
 dd <- rms::datadist(all_data)
 options(datadist='dd')
@@ -446,11 +449,11 @@ plot(summary(lrm.with.lasso.variables), cex=0.5, cex.lab=0.7, cex.axis = 0.7)
 
 Odds ratios for train data
 ```{r, results="asis"}
-oddsratios <- as.data.frame(exp(cbind("Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
+oddsratios <- as.data.frame(exp(cbind("Adjusted Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
 #I'm not sure how to set the significant digits
 knitr::kable(oddsratios, digits = 2)
 ```
-
+Annotation for Manuscript Table 2:  A:  Nonlinear component A of the function describing the variable and the probability of matching into OBGYN.  B:  Nonlinear component B of the function describing the variable and the probability of matching into OBGYN.  C:  Nonlinear component C of the function describing the variable and the probability of matching into OBGYN.  
 
 # Shift Gears: Use glmnet model on 2018 TEST data
 
@@ -568,6 +571,8 @@ nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor
                    which="Match_Status")
 #print(nomo.from.lrm.with.lasso.variables)
 ```
+#Annotation:  Manuscript Figure 1:  The first row called points assigned to each variable's measurement from rows 2-12, which are variables included in predictive model.  Assigned points for all variables are then summed and total can be located on line 13 (total points).  Once total points are located, draw a vertical line down to the bottom line to obtain the predicted probability of matching.  For non-linear variables (count of oral presentations, etc.) values should be erad from left to right.   
+
 
 #Calibration of the model based on the test data.  
 The ticks across the x-axis represent the frequency distribution (may be called a rug plot) of the predicted probabilities. This is a way to see where there is sparsity in your predictions and where there is a relative abundance of predictions in a given area of predicted probabilities.
@@ -607,7 +612,7 @@ The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the 
 
 
 
-# Appendix of Univariate Analysis
+#Appendix of Univariate Analysis
 The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
