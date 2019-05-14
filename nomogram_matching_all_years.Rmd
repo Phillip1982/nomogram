@@ -46,6 +46,7 @@ Set working directory to files present in the Dropbox folder.
 setwd("~/Dropbox/Nomogram/nomogram")  
 ```
 
+#Create datafram of independent/dependent variables
 Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Applicants who were in the SOAP and applied to the preliminary spot were determined to be unmatched.  The data is contained in a data frame called all_data.  
 ```{r pressure, echo=FALSE, include=FALSE}
 download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
@@ -159,7 +160,6 @@ table1_all_data <- arsenal::tableby(Match_Status ~
 summary(table1_all_data, text=T, title='Table 1:  Applicant Descriptive Variables by Matching Success or Failure from 2015 to 2018', pfootnote=TRUE)
 ```
 
-
 Split the data so that we can build a model with the 2015, 2016, and 2017 data and then test it with the 2018 data we reserved. 
 ```{r, warning=FALSE, echo=TRUE, message=FALSE}
 train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
@@ -168,7 +168,10 @@ train <- train %>% select(-"Year")
 test <- filter(all_data, Year == c(2018)) #Test on 2018 data
 nrow(test)
 test <- test %>% select(-"Year")
+```
 
+#Check Proportions of Matched
+```{r}
 levels(train$Match_Status) <- c("NoMatch", "Matched")
 levels(test$Match_Status) <- c("NoMatch", "Matched")
 
@@ -179,6 +182,7 @@ prop.table(table(train$Match_Status)) #Train data set proportion
 
 prop.table(table(test$Match_Status))  #Test data set proportion
 ```
+
 
 #Relaxed Cubic Splines For Continuous Variables
 ```{r, echo=TRUE, include=FALSE, fig.width=7, fig.asp=1}
@@ -224,9 +228,9 @@ kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
 knitr::kable(kitchen.sink.model.stats, caption = "Performance statistics of the Kitchen Sink Model Using All Variables", digits=2)
 ```
 
-Evaluating the signficance of kitchen.sink variables using text and visuals.  According to the ANOVA: USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are predictors.  
+Evaluating the signficance of kitchen.sink variables using text and visuals.  According to the ANOVA: USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are predictors.  The anova() function for the model object allows to see the null and residuals deviances. The difference between these two deviances shows how well the model is performing against the null deviance. The residuals deviance column allows to see the drop of deviance value by additional respective predictor term added.
 ```{r, echo=TRUE, message=FALSE,fig.width=7, fig.asp=1}
-plot(anova(kitchen.sink), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
+plot(anova(kitchen.sink, test = 'Chisq'), cex=0.9, cex.lab=0.9, cex.axis = 0.7)
 ```
 
 
@@ -419,7 +423,7 @@ axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.ax
 ```
 
 
-#Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
+#Revise Model - Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
 ```{r, echo=TRUE, results="asis", warning=FALSE}
 d <- datadist(test)
 options(datadist = "d")
@@ -434,7 +438,7 @@ knitr::kable(broom::tidy(lrm.with.lasso.variables$stats), digits =2, caption = "
 ```{r, echo=FALSE,  fig.width=7, fig.asp=1}
 lrm.with.lasso.variables
 #dev.off()
-plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.6, cex.axis = 0.7)
+plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.4, cex.axis = 0.4)
 ```
 
 
@@ -448,6 +452,8 @@ plot(summary(lrm.with.lasso.variables), cex=0.5, cex.lab=0.7, cex.axis = 0.7)
 ```
 
 Odds ratios for train data
+???????????????????The output of the logistic regression object, lrm.with.lasso.variables, shows that catergorical features, ‘Pcalss’ and ‘Sex’, and the numerical features ‘Age’ and ‘Sibsp’ are significant features for predicitng survival outcome at alpha = 0.05 level. Th rest of the model coefficients suggests insignificant contribution in survival prediction. For example, increase one unit in age will decrease the log odd of survival by 0.039; being a male will decrease the log odd of survival by 2.7 compared to female; and being in class2 will decrease the log odd of survival by 0.92, being in class3 will decrease the log odd of survival by 2.15.  #https://rstudio-pubs-static.s3.amazonaws.com/283447_fd922429e1f0415c89b93b6da6dc1ccc.html
+
 ```{r, results="asis"}
 oddsratios <- as.data.frame(exp(cbind("Adjusted Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
 #I'm not sure how to set the significant digits
@@ -455,8 +461,8 @@ knitr::kable(oddsratios, digits = 2)
 ```
 Annotation for Manuscript Table 2:  A:  Nonlinear component A of the function describing the variable and the probability of matching into OBGYN.  B:  Nonlinear component B of the function describing the variable and the probability of matching into OBGYN.  C:  Nonlinear component C of the function describing the variable and the probability of matching into OBGYN.  
 
-# Shift Gears: Use glmnet model on 2018 TEST data
-
+#Use Model to predict match for Test Data
+Shift Gears: Test Accuracy of Model on Training Data, Use glmnet model on 2018 TEST data
 Here the code is creating a vector called predictorsNames so that we can reuse the model by changing the variables in predictorsNames in the future prn.  Run the 2018 data through the train model.  
 ```{r, warning=FALSE, message=FALSE}
 #Create predictorsNames variable
@@ -477,28 +483,34 @@ test$Match_Status <- (test$Match_Status - 1)
 predictions <- as.numeric(predictions)
 ```
 
+# Use Model to predict matching for Test Data
 First, we need to fit lrm.with.lasso.variables in GLM, rather than rms to get the AUC.  There is probably a better way to do this.  Using the test data set.  Also built the same model in lrm.  
 ```{r, echo=TRUE, warning=FALSE}
 test$Match_Status <- as.integer(test$Match_Status+2)
 test$Match_Status <- as.factor(test$Match_Status)
 
-test.glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+train.glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = test, family = "binomial"(link=logit))  
 
-test.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+train.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
 ```
 
 ```{r}
 #lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
-test.model.stats <- as.data.frame(test.lrm.with.lasso.variables$stats)
+test.model.stats <- as.data.frame(train.lrm.with.lasso.variables$stats)
 knitr::kable(test.model.stats, caption = "Performance statistics of the Testing Model", digits=2)
 ```
+The Receiver Operating Characteristic (ROC) curve is plotted below for false positive rate (FPR) in the x-axis vs. the true positive rate (TPR) in the y-axis. It shows the detection of true positive while avoiding the false positive. This is the same as measuring the unspecificity (1 - specificity) in x-axis, against the sensitivity in y-axis. This ROC curve in particular shows that its very closed to the perfect classifier meaning that its better at identifying the positive values. 
 
-
-ROC: Type 1 using ggplot with nice controls
+#Use Model to predict match Status for Test Data
 ```{r}
-prob <- predict(test.glm.with.lasso.variables, data = na.omit(test), type="response")
+#Use Model to predict match Status for Test Data
+prob <- predict(train.glm.with.lasso.variables, newdata = test, type="response")
 pred <- prediction(prob, na.omit(test)$Match_Status)
+```
+
+#ROC: Type 1 using ggplot with nice controls
+```{r}
 # rest of this doesn't need much adjustment except for titles
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 auc <- performance(pred, measure="auc")
@@ -512,6 +524,7 @@ ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
   labs(title = paste0("ROC Curve with area under the curve = ", auc),
        subtitle = "Model A for test data")
 ```
+
 
 ROC Curve type 2 with nice labels on the x and y
 ```{r}
@@ -550,7 +563,7 @@ plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall 
 d <- datadist(test)
 options(datadist = "d")
 
-nomo.from.lrm.with.lasso.variables <- rms::nomogram(test.lrm.with.lasso.variables, 
+nomo.from.lrm.with.lasso.variables <- rms::nomogram(train.lrm.with.lasso.variables, 
          #lp.at = seq(-3,4,by=0.5),
         fun = plogis, 
         fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
@@ -587,9 +600,9 @@ When either of the two lines is above the "Ideal" line, this tells us the model 
 
 Applying to your specific plot, it appears most of the predicted probabilities are in the higher end (per rug plot). The model overall appears to be reasonably well calibrated based on the Bias-Corrected line closely following the Ideal line; there is some underprediction at lower predicted probabilities because the Bias-Corrected line is above the Ideal line around < 0.3 predicted probability.
 
-The mean absolute error is the "average" absolute difference (disregard a positive or negative error) between predicted probability and actual probability. Ideally, we want this to be small (0 would be perfect indicating no error). This seems small in your plot, but may be situation dependent on how small is small. 
+The mean absolute error is the "average" absolute difference (disregard a positive or negative error) between predicted probability and actual probability. Ideally, we want this to be small (0 would be perfect indicating no error). This seems small in this plot, but may be situation dependent on how small is small. 
 ```{r,  fig.width=7, fig.asp=1}
-calib <- rms::calibrate(test.lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
+calib <- rms::calibrate(train.lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
 
 plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
 ```
@@ -601,7 +614,7 @@ Objective:  We sought to construct and validate a model that predicts a medical 
 
 Study Design:  In all, `r nrow(all_data)` medical students applied to a residency in Obstetrics and Gynecology at the University of Colorado from 2015 to 2018 were analyzed.  The data set was splint into a model training cohort of `r nrow(train)` who applied in 2015, 2016, and 2017 and a separate validation cohort of `r nrow(test)` in 2018.  In all, `r ncol(all_data)` candidate predictors for matching were collected.  Multiple logistic models were fit onto the training choort to predict matching.  Variables were removed using least absolute shrinkage and selection operator reduction to find the best parsimonious model.  Model discrimination was measured using the concordance index.  The model was internally valideated using 1,000 bootstrapped samples and temporarly validated by testing the model's performance in the validation cohort.  Calibration curves were plotted to inform educators about the accuracy of predicted probabilities.  
 
-Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((test.lrm.with.lasso.variables$stats[6]),2)`).  
+Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((train.lrm.with.lasso.variables$stats[6]),2)`).  
 
 #Prose of the paper DRAFT
 Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology residency at the University of Colorado from 2015 to 2018.  The overall mean rate of matching in the training cohort was `r table(train$Match_Status)[[2]]` of `r nrow(train)` was (`r round((prop.table(table(train$Match_Status))[[2]]*100),1)`%).  
@@ -661,22 +674,26 @@ summary(table1_all_data, text=T, title='Supplemental Table: Descriptive analysis
 
 
 ```{r}
-sessionInfo()
-```
-
-```{r}
 #DynNom
 DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
-                   data = test, x = TRUE, y= TRUE)  
+                   data = test, x = TRUE, y= TRUE)
 
 #install.packages('rsconnect')
 library(rsconnect)
-DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  #Not workings
+#DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  #Not workings
 
-#Publish to shiny
-getwd()
-DynNom::DNbuilder(model = DynNom.model.lrm, data = train)
+# #Publish to shiny
+# getwd()
+# DynNom.model.glm  <- glm(Match_Status ~ Age + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  USMLE_Step_1_Score + Visa_Sponsorship_Needed + white_non_white, family = "binomial",  #Removed the relax cubic splines for age and USMLE step 1
+#                    data = test, x = TRUE, y= TRUE)  
+# #DynNom::DNbuilder(model = DynNom.model.glm, data = train)
 ```
+
+```{r}
+sessionInfo()
+```
+
+
 
 
 
