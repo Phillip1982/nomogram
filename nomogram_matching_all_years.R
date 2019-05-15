@@ -353,9 +353,8 @@ options(datadist = "d")
 kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
 
 kitchen.sink
-anova(kitchen.sink)
 #dev.off()
-plot(anova(kitchen.sink)) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
+plot(anova(kitchen.sink), cex=0.5, cex.lab=0.6, cex.axis = 0.7) #According to the ANOVA, USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are the only statistically significant pieces of the puzzle, and the nonlinear part of the model doesn’t seem to have a real impact.
 class(kitchen.sink)
 #ggplot(Predict(m.A))
 
@@ -437,6 +436,8 @@ plot(s, log=TRUE)
 
 #First, we need to fit Model 1 in glm, rather than rms to get the AUC.
 paste("These are the variables from LASSO for the nomogram:", variables)
+
+test$Match_Status <- as.integer(test$Match_Status+2)
 
 glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
                    data = test, family = "binomial"(link=logit))  

@@ -39,7 +39,7 @@ The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Appl
 Install and Load packages.  See Session information at the end.  
 ```{r setup, include=FALSE}
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb")
 
 packrat_mode(on = TRUE)
 ```
@@ -88,11 +88,13 @@ head(all_data)
 
 ```{r, warning=F, message=FALSE, include=TRUE}
 all_data_ggally <- as.data.frame(all_data) 
-ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Age", "white_non_white", "Gender", "US_or_Canadian_Applicant"))
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Age", "white_non_white", "Gender"))
 
-ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Couples_Match", "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha", "USMLE_Step_1_Score"))
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" ,  "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha", "USMLE_Step_1_Score"))
 
-ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Medical_Degree", "Visa_Sponsorship_Needed", "Count_of_Poster_Presentation", "Count_of_Peer_Reviewed_Book_Chapter"))
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Medical_Degree", "Visa_Sponsorship_Needed", "Count_of_Peer_Reviewed_Book_Chapter"))
+
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("US_or_Canadian_Applicant" , "Couples_Match", "Visa_Sponsorship_Needed", "Count_of_Poster_Presentation"))
 ```
 
 
@@ -507,6 +509,11 @@ lrm.with.lasso.variables$stat[[6]]  #C-statistic
 ```{r}
 m <- car::vif(lrm.with.lasso.variables)
 print(m)
+
+#Where is the multicolinearity coming from .  Perturb::colldiag helps to figure that out.  
+cd<-perturb::colldiag(m)
+cd
+print(cd,fuzz=.3)
 ```
 
 ## Remove variables with multicollinearity
@@ -589,6 +596,7 @@ train.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_A
 test.model.stats <- as.data.frame(train.lrm.with.lasso.variables$stats)
 knitr::kable(test.model.stats, caption = "Performance statistics of the Testing Model", digits=2)
 ```
+
 The Receiver Operating Characteristic (ROC) curve is plotted below for false positive rate (FPR) in the x-axis vs. the true positive rate (TPR) in the y-axis. It shows the detection of true positive while avoiding the false positive. This is the same as measuring the unspecificity (1 - specificity) in x-axis, against the sensitivity in y-axis. This ROC curve in particular shows that its very closed to the perfect classifier meaning that its better at identifying the positive values. 
 
 ## Use Model to predict match Status for Test Data
