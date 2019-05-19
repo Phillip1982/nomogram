@@ -21,7 +21,7 @@ geometry: margin=1in
 options(tinytex.verbose = TRUE)
 ```
 
-```{r knitr_options, echo=FALSE, include=FALSE}
+```{r, echo=FALSE, include=FALSE}
 library(knitr)
 opts_knit$set(root.dir = normalizePath("../"), 
               fig.width=8, fig.height=5, 
@@ -37,11 +37,19 @@ Introduction
 The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Applicants who were in the SOAP and applied to the preliminary spot were determined to be unmatched.  The data is contained in a data frame called all_data.  
 
 Install and Load packages.  See Session information at the end.  
-```{r setup, include=FALSE}
+```{r, include=FALSE}
+# update.packages(ask = FALSE, checkBuilt = TRUE)
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "Deducer", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling")
+# getOption("repos")
+# install.packages(c('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'ggplot2', 'dplyr', 'magick', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rmarkdown", "rattle", "rmda", "funModeling", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "perturb"), dependencies = c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"), Ncpus = 3, clean = TRUE, verbose = TRUE, quiet=FALSE)
 
-packrat_mode(on = TRUE)
+#install.packages('knitr', dependencies = TRUE)
+#devtools::install_github("yihui/knitr")
+#devtools::install_github("exploratory-io/exploratory_func")
+#devtools::install_github("rstudio/rmarkdown")
+
+packrat::packrat_mode(on = TRUE)
 ```
 
 ```{r}
@@ -702,31 +710,15 @@ calib <- rms::calibrate(train.lrm.with.lasso.variables, method = "boot", boot=10
 plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
 ```
 
-# Abstract DRAFT
-Background:  A model that predicts a medical student's chances of matching into an obstetrics and gynecology residency may facilitate improved counseling and fewer unmatched medical students.  
+#Sample data frame for cases to use in man vs. machine
+Insert code to randomnly sample the data rows.  
+```{r}
+set.seed(123)
 
-Objective:  We sought to construct and validate a model that predicts a medical student's chance of matching into obstetrics and gynecology residency.  
+head(sample)
 
-Study Design:  In all, `r nrow(all_data)` medical students applied to a residency in Obstetrics and Gynecology at the University of Colorado from 2015 to 2018 were analyzed.  The data set was splint into a model training cohort of `r nrow(train)` who applied in 2015, 2016, and 2017 and a separate validation cohort of `r nrow(test)` in 2018.  In all, `r ncol(all_data)` candidate predictors for matching were collected.  Multiple logistic models were fit onto the training choort to predict matching.  Variables were removed using least absolute shrinkage and selection operator reduction to find the best parsimonious model.  Model discrimination was measured using the concordance index.  The model was internally valideated using 1,000 bootstrapped samples and temporarly validated by testing the model's performance in the validation cohort.  Calibration curves were plotted to inform educators about the accuracy of predicted probabilities.  
+```
 
-Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((train.lrm.with.lasso.variables$stats[6]),2)`).  
-
-# Prose of the paper DRAFT
-Materials and Methods:  This was an institutional review board exempt retrospective cohort analysis of medical student who applied to Obstetrics and Gynecology residency from 2015 to 2018.  Guidelines for transparent reporting of a multivariable prediction model for individual outcomes were used in this study.(https://www.equator-network.org/reporting-guidelines/tripod-statement/)  Eligible students were identified if they applied to residency during the study period.  The outcome of the model was defined as matching or not matching into residency for the specific application year.  Candidate predictors of matching were compiled from a literature review, expert opinion, and judgment then collected from the Electronic Residency Application Service materials.  
-
-Once the data set was complete it was divided into a model training and test set.  When an external validation data set is unavailable to test a new model but an existing modeling data set is sufficiently large, as in this case, it is recommended to split by time and develop the model using data from one period and evaluate its performance from data from a future period.  We arbitrarily chose to divide the cohort into a training set of 2015 to 2017 data and a training set of 2018 data.  
-
-In all, ?? candidate risk factors were considered for fitting on the training data set (supplmental table.  Missing values in risk fact
-
-Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology residency at the University of Colorado from 2015 to 2018.  The overall mean rate of matching in the training cohort was `r table(train$Match_Status)[[2]]` of `r nrow(train)` was (`r round((prop.table(table(train$Match_Status))[[2]]*100),1)`%).  
-
-The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the training cohort are presented in Supplemental Table 1.  To identify predictors from the candidates we employed least absolute shrinkage and selection operator (LASSO).  Regularisation techniques change how the model is fit by adding a penalty for every additional parameter you have in the model.  
-
-`r length(variables)` variables were included within the final model.  Applicants from the United States or Canada, high USMLE Step 1 scores, female gender, White race, no visa sponsorship needed, membership in Alpha Omega Alpha, no interruption of medical training, couples matching, and allopathic medical training increased the chances of matching into OBGYN.  In contrast, more oral presentations, increasing age, a higher number of peer-reviewed online publications, an increased number of authored book chapters, and a higher count of poster presentations all decreased the probability of matching into OBGYN (table 2).  The nomogram illustrates the strength of association of the predictors to the outcome as well as the nonlinear associations between age, count of Oral Presentations, count of peer−reviewed book chapters and the chances of matching (Figure 1).  
-
-
-# Appendix, Exploratory Data Analysis
-The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #funModeling::df_status(all_data)
@@ -737,9 +729,11 @@ funModeling::profiling_num(all_data)
 
 #Shows the variable frequency charted by matching status
 
-#TURN BACK ON AT THE END
 funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
+
+# Appendix, Exploratory Data Analysis
+The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.
 
 # Appendix, Supplemental Table:  Descriptive analysis of all variables considered in the training set along with their association to matching.  
 
