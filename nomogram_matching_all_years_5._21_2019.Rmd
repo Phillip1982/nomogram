@@ -40,9 +40,7 @@ Install and Load packages.  See Session information at the end.
 ```{r, include=FALSE}
 # update.packages(ask = FALSE, checkBuilt = TRUE)
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling")
-# getOption("repos")
-# install.packages(c('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'ggplot2', 'dplyr', 'magick', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rmarkdown", "rattle", "rmda", "funModeling", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "perturb"), dependencies = c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"), Ncpus = 3, clean = TRUE, verbose = TRUE, quiet=FALSE)
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "stargazer")
 
 #install.packages('knitr', dependencies = TRUE)
 #devtools::install_github("yihui/knitr")
@@ -58,13 +56,13 @@ set.seed(123456)
 
 Set working directory to files present in the Dropbox folder.
 ```{r files, echo=FALSE}
-setwd("~/Dropbox/Nomogram/nomogram")  
+#setwd("~/Dropbox/Nomogram/nomogram")  
 ```
 
 # Step 2:  Create a dataframe of independent and dependent variables
 Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  
 ```{r pressure, echo=FALSE, include=FALSE}
-download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+#download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
 all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
 dplyr::glimpse(all_data)
 all_data <- all_data %>%
@@ -72,17 +70,20 @@ all_data <- all_data %>%
 ```
 
 Bring in the columns that are desired for all_data.  
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache=TRUE}
 all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
 ```
 
 Data size and structure
-```{r}
+```{r, results="asis"}
+plot_str(all_data)
 dim(all_data)
+plot_intro(all_data)
 ```
 
 ```{r}
 str(all_data)
+inspectdf::inspect_types(all_data, show_plot = TRUE)
 ```
 
 ```{r}
@@ -91,7 +92,20 @@ sum(is.na(all_data))
 
 ```{r}
 head(all_data)
+#DataExplorer::create_report(all_data)  #Error: pandoc document conversion failed with error 99
 ```
+## Univariate Analysis
+```{r, results='asis'}
+DataExplorer::plot_bar(all_data)
+#DataExplorer::plot_boxplot(all_data, by = "Match_Status")
+#DataExplorer::plot_histogram(all_data)
+inspectdf::inspect_cat(all_data, show_plot = TRUE)
+inspectdf::inspect_imb(all_data, show_plot = TRUE)
+imb <- inspectdf::inspect_imb(all_data, show_plot = FALSE)
+knitr::kable(imb)
+#inspectdf::inspect_num(all_data, show_plot = TRUE, plot_layout = c(5,2)) #Breaks the Rmarkdown compiling for some reason.  Ugh.  
+```
+
 
 ```{r, warning=F, message=FALSE, include=TRUE}
 all_data_ggally <- as.data.frame(all_data) 
@@ -150,7 +164,8 @@ all_data$Match_Status #Outcome must be numeric
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 ```
 
-## Should we use means or medians in table 1? 
+## Normality testing in R
+Should we use means or medians in table 1? 
 The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout. There is skew in age.   
 ```{r, message=FALSE, echo=FALSE}
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
@@ -162,6 +177,23 @@ moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for s
 moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the Step 1 score data.  
 #Therefore only use medians.
 ```
+Quantile-Quantile plot is a way to visualize the deviation from a specific probability distribution. After analyzing these plots, it is often beneficial to apply mathematical transformation (such as log) for models like linear regression. 
+```{r}
+DataExplorer::plot_qq(all_data)
+```
+
+Visual inspection is usually unreliable. It’s possible to use a significance test comparing the sample distribution to a normal one in order to ascertain whether data show or not a serious deviation from normality.There are several methods for normality test such as Kolmogorov-Smirnov (K-S) normality test and Shapiro-Wilk’s test.
+
+The null hypothesis of these tests is that “sample distribution is normal”. If the test is significant, the distribution is non-normal.  From the output, the p-value less than 0.05 implying that the distribution of the data are  significantly different from normal distribution. In other words, we can not assume the normality.
+```{r}
+shapiro.test(all_data$Age)
+shapiro.test(all_data$Count_of_Oral_Presentation)
+shapiro.test(all_data$Count_of_Poster_Presentation)
+shapiro.test(all_data$Count_of_Peer_Reviewed_Book_Chapter)
+shapiro.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts)
+shapiro.test(all_data$USMLE_Step_1_Score)
+```
+
 ## Missing data
 Check to see if we have any missing data with Hmisc::naclus(all_data).  No missing data here.  
 ```{r, message=FALSE, echo=FALSE,  fig.width=7, fig.asp=1}
@@ -173,7 +205,7 @@ na.patterns <- Hmisc::naclus(all_data)
 #dev.off()
 
 plot(na.patterns) #Cool!! this shows who has the most missing data.  
-
+DataExplorer::plot_missing(all_data)
 ```
 ## Table 1
 Table 1: Applicant Descriptive Variables by Matching Success (1) or Failure (0)
@@ -210,14 +242,14 @@ Split the data so that we can build a model with the 2015, 2016, and 2017 data a
 ```{r, warning=FALSE, echo=TRUE, message=FALSE}
 train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
 nrow(train) 
-train <- train %>% select(-"Year")
 test <- filter(all_data, Year == c(2018)) #Test on 2018 data
 nrow(test)
 test <- test %>% select(-"Year")
+train <- train %>% select(-"Year")
 ```
 
 Check Proportions of Matched
-```{r}
+```{r, results="asis"}
 levels(train$Match_Status) <- c("NoMatch", "Matched")
 levels(test$Match_Status) <- c("NoMatch", "Matched")
 
@@ -230,7 +262,47 @@ prop.table(table(test$Match_Status))  #Test data set proportion
 
 kable(crude_summary, caption="2x2 Contingency Table on Matching for all_data", format="markdown")
 ```
+##Compare the datasets of train and test
+```{r, results="asis", include=FALSE}
+summary(arsenal::comparedf(train, test))
+```
 
+Exploiting feature interactions (like should I combine variable A with variable B?)
+
+Table: Applicant Descriptive Variables by Train vs. Test
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results="as.is"}
+all_data_train_test <- all_data %>% dplyr::mutate(dataset = dplyr::recode(Year, `2015` = "train", `2016` = "train", `2017` = "train", `2018` = "test"))
+#View(all_data_train_test)
+
+train_test_all_data <- arsenal::tableby(interaction(Match_Status, dataset) ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=all_data_train_test, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+
+table_train_test <- summary(train_test_all_data, text=T, title='Table:  Characteristics of the Test and Train Groups', pfootnote=TRUE)
+
+knitr::kable(table_train_test)
+```
 
 ## Relaxed Cubic Splines For Continuous Variables
 ```{r, echo=TRUE, include=FALSE, fig.width=7, fig.asp=1}
@@ -270,6 +342,19 @@ kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Co
 kitchen.sink
 ```
 
+Are there predictor interactions?
+```{r, echo=TRUE}
+lm.fit2 <- lm(Match_Status ~ (white_non_white + Age + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree)^2, data = all_data)
+```
+
+```{r, include=FALSE}
+lm.fit3 <- anova(lm.fit2)
+```
+
+```{r}
+lm.fit3
+```
+
 ```{r, warning=FALSE}
 #lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
 kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
@@ -305,7 +390,12 @@ train_corrleation <- train %>%
   mutate(Medical_Education_or_Training_Interrupted = fct_recode(Medical_Education_or_Training_Interrupted,"0" = "No", "1" = "Elections_Senior_Year", "2" = "Yes")) %>%
   mutate_all(as.integer)%>%
   stats::cor(use="pairwise.complete.obs") %>%
-  corrplot::corrplot(type="lower", diag=FALSE, order = "alphabet", tl.cex = 0.5, tl.col = "black", sig.level = "*", pch = TRUE)
+  corrplot::corrplot(type="lower", diag=FALSE, order = "hclust", tl.cex = 0.5, tl.col = "black", sig.level = "0.01", insig = "blank", pch = TRUE)
+```
+
+p-value associated with the null hypothesis of 0 correlation, small values indicate evidence that the true correlation is not equal to 0.
+```{r}
+inspect_cor(all_data, show_plot = FALSE, alpha = 0.05)
 ```
 
 Usually it’s most interesting to start with the strong signals in the correlation plot and to examine them more in detail.
@@ -394,6 +484,8 @@ set.seed(356)
 glmnet1<-cv.glmnet(x=x,y=train$Match_Status,nfolds=10,alpha=.5, family="binomial")
 plot(glmnet1,main = "Misclassification Error")
 ```
+The left vertical line represents the minimum error, and the right vertical line represents the cross-validated error within 1 standard error of the minimum. LASSO, least absolute shrinkage and selection operator
+
 If you look at this graph we ran the model with a range of values for lambda and saw which returned the lowest cross-validated error. You'll see that our cross-validated error remains consistent until we hit the dotted lines, where we start to see our model perform very poorly due to underfitting with misclassification error.  Cross validation is an essential step in studies to help up us not only calibrate the parameters of our model but estimate the prediction accuracy with unseen data.
 
 Variable selection using LASSO in the train dataset
@@ -514,7 +606,7 @@ For a given predictor, multicollinearity can assessed by computing a score calle
 m <- car::vif(lrm.with.lasso.variables)
 print(m)
 
-#Where is the multicolinearity coming from .  Perturb::colldiag helps to figure that out.  
+#Where is the multicolinearity coming from?  Perturb::colldiag helps to figure that out.  
 cd<-perturb::colldiag(m)
 cd
 print(cd,fuzz=.3)
@@ -712,10 +804,48 @@ plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predict
 Insert code to randomnly sample the data rows.  
 ```{r}
 set.seed(123)
-
-head(sample)
-
+sample <- dplyr::sample_n(all_data, 10)
+#head(sample)
+#View(sample)
 ```
+
+Medical student 1 is a 
+`r sample$Age[1]` `r tolower(sample$white_non_white[1])` `r tolower(sample$Gender[1])`
+who presents as a 
+`r sample$US_or_Canadian_Applicant[1]`
+from a 
+`r sample$Medical_Degree[1]` 
+medical school.  This medical student did 
+`r sample$Medical_Education_or_Training_Interrupted[1]` 
+have their medical education interrupted for any reason.  
+
+On USMLE Step 1 the student scored
+`r sample$USMLE_Step_1_Score[1]`
+.  The student was 
+`r sample$Alpha_Omega_Alpha[1]`
+in Alpha Omega Alpha.  
+
+The medical student's CV includes:
+`r sample$Count_of_Oral_Presentation[1]` 
+oral presentations from the podium.  
+
+`r sample$Count_of_Poster_Presentation[1]` 
+poster presentations.
+
+`r sample$Count_of_Peer_Reviewed_Journal_Articles_Abstracts[1]`
+peer-reviewed journal articles.  
+
+`r sample$Count_of_Peer_Reviewed_Book_Chapter[1]` 
+peer-reviewed book chapters. 
+
+`r sample$Count_of_Peer_Reviewed_Online_Publication[1]`
+online publications.  
+
+Lastly, the medical student had 
+`r sample$Visa_Sponsorship_Needed[1]`
+need for visa sponsorship from the training institution and 
+`r sample$Couples_Match[1]`
+a need for a couples match.  
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -763,25 +893,57 @@ table1_all_data <- arsenal::tableby(Match_Status ~
 
 summary(table1_all_data, text=T, title='Supplemental Table: Descriptive analysis of all variables considered in the training set along with their association to matching', pfootnote=TRUE)
 ```
+#Appendix, Data in a private repository to be shared with the journal
+http://dx.doi.org/10.17632/3rtg46skbd.1
+
+Medical student #1 is a `r sample$Age[1]`year old `r sample$white_non_white[1]` `r sample$Gender[1]` who is a US Senior medical graduate
+
+https://denverhealth.az1.qualtrics.com/WRQualtricsControlPanel/?Section=SV_3QmslHJJmin4xBX&SubSection=&SubSubSection=&PageActionOptions=&TransactionID=1&Repeatable=0&restrictToBrand=1&criteria=&ContextSection=EditSection
+
+
+# Abstract DRAFT
+Background:  A model that predicts a medical student's chances of matching into an obstetrics and gynecology residency may facilitate improved counseling and fewer unmatched medical students.
+
+Objective:  We sought to construct and validate a model that predicts a medical student's chance of matching into obstetrics and gynecology residency.
+
+Study Design:  In all, `r nrow(all_data)` medical students applied to a residency in Obstetrics and Gynecology at the University of Colorado from 2015 to 2018 were analyzed.  The data set was splint into a model training cohort of `r nrow(train)` who applied in 2015, 2016, and 2017 and a separate validation cohort of `r nrow(test)` in 2018.  In all, `r ncol(all_data)` candidate predictors for matching were collected.  Multiple logistic models were fit onto the training choort to predict matching.  Variables were removed using least absolute shrinkage and selection operator reduction to find the best parsimonious model.  Model discrimination was measured using the concordance index.  The model was internally valideated using 1,000 bootstrapped samples and temporarly validated by testing the model's performance in the validation cohort.  Calibration curves were plotted to inform educators about the accuracy of predicted probabilities.
+
+Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((train.lrm.with.lasso.variables$stats[6]),2)`).
+
+# Prose of the paper DRAFT
+Materials and Methods:  This was an institutional review board exempt retrospective cohort analysis of medical students who applied to Obstetrics and Gynecology (OBGYN) residency from 2015 to 2018.  Guidelines for transparent reporting of a multivariable prediction model for individual outcomes were used in this study.(https://www.equator-network.org/reporting-guidelines/tripod-statement/).  Eligible students were identified if they applied to OBGYN residency during the study period.  The outcome of the model was defined as matching or not matching into residency for the specific application year.  Individual predictors of successfully* matching were compiled from a literature review, expert opinion, and judgment then collected from the Electronic Residency Application Service materials.
+
+Once the data set was complete it was divided into a model training and test set.  *When an external validation data set is unavailable to test a new model but an existing modeling data set is sufficiently large, as in this case, it is recommended to split by time and develop the model using data from one period and evaluate its performance from data from a future period.  We arbitrarily chose to divide the cohort into a training set of 2015 to 2017 data and a training set of 2018 data.
+
+In all, ?? candidate risk factors were considered for fitting on the training data set (supplmental table).  Variable selection was done using a peenalized logistic regression called least absolute shrinkage and selection operator (LASSO).  The LASSO model is a regression analysis method that performs both variable selection and regularization in order to enhance the prediction accuracy and interpretability of the statistical model it produces.  We elected to use LASSO to choose which covariates to include over stepwise selection because the latter only improves prediction accuracy in certain cases, such as when only a few covariates have a strong relationship with the outcome.
+
+The logistic model’s discriminative ability was measured by the area under the curve (AUC) for the receiver operating characteristic curve based on the sensitivity and specificity of the model.  An AUC value closer to 1 indicates a better prediction of the outcome and an AUC value of 0.5 indicates that the model predicts no better than chance. The AUC is also a representation of the concordance index and measures the model’s ability to generate a higher predicted probability of a successful match* occurring in a medical student who has a ????.   For example, if we have a pair of medical students, in which one medical student matches and the other does not, the concordance index measures the model’s ability to assign a higher risk of not matching to the medical student who successfully matches. All concordance indices and receiver operating characteristic curves were internally validated using a 1,000 bootstrap resample to correct for bias and overfitting within the model. The bootstrapping method of validation has been shown to be superior to other approaches to estimate internal validity. Calibration curves were also plotted to depict the relationship between the model’s predicted outcomes against the cohort’s observed outcome, where a perfectly calibrated model follows a 45° line.
+
+After the best model was selected and internally validated, the model was compared with the best currently available method of estimating risk, that is, an expert medical educator’s predictions. To perform these comparisons, a subset of 50 participants was randomly selected for comparing the probability of matching between the model and the panel of experts. These ?? participants were used to compare predictions of the models with experts’ predictions and not as a true independent validation subset. The model was rebuilt using the remaining participants in the data set excluding the 50 randomly selected participants. The candidate risk factors of these 50 participants were given to 20 “expert” medical educators with representation from each of the *** for review resulting in 1,000 expert predictions and 50 model predictions for each outcome. All medical educators were considered to be experienced in counseling medical students regarding OBGYN matching. Each of the 20 experts were asked to consider each medical student’s data from all ??? variables among the 50 randomly selected students and provide their best estimated outcome by answering the following question: “Out of 100 medical students with these exact characteristics, estimate the number of medical students who would not matching into OBGYN during the 2019 application year.” Individual medical educators’ predictions were not averaged to yield a single value because incorporating each medical educator’s predictions substantially increased statistical power. The model’s predictions were compared with the experts’ predictions, which included all risk factors, to determine which was most accurate. The difference in accuracy was determined by using a bootstrap method from their respective receiver operating characteristic curves. All analyses were performed using R 3.5.
+
+Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology residency at the University of Colorado from 2015 to 2018.  The overall mean rate of matching in the training cohort was `r table(train$Match_Status)[[2]]` of `r nrow(train)` was (`r round((prop.table(table(train$Match_Status))[[2]]*100),1)`%).
+
+The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the training cohort are presented in Supplemental Table 1.  To identify predictors from the candidates we employed least absolute shrinkage and selection operator (LASSO).  Regularisation techniques change how the model is fit by adding a penalty for every additional parameter you have in the model.
+
+`r length(variables)` variables were included within the final model.  Applicants from the United States or Canada, high USMLE Step 1 scores, female gender, White race, no visa sponsorship needed, membership in Alpha Omega Alpha, no interruption of medical training, couples matching, and allopathic medical training increased the chances of matching into OBGYN.  In contrast, more oral presentations, increasing age, a higher number of peer-reviewed online publications, an increased number of authored book chapters, and a higher count of poster presentations all decreased the probability of matching into OBGYN (table 2).  The nomogram illustrates the strength of association of the predictors to the outcome as well as the nonlinear associations between age, count of Oral Presentations, count of peer−reviewed book chapters and the chances of matching (Figure 1).
+
 
 # Appendix, DynNom Model for Shiny Upload
-```{r}
+```{r DynNom}
 #DynNom
-DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Gender + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + white_non_white + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match +  Medical_Degree + Military_Service_Obligation +  Visa_Sponsorship_Needed,
                    data = test, x = TRUE, y= TRUE)
 
-#install.packages('rsconnect')
-library(rsconnect)
-#DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  #Not workings
+#DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  
 
-# #Publish to shiny
+# Publish to shiny
 # getwd()
 # DynNom.model.glm  <- glm(Match_Status ~ Age + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  USMLE_Step_1_Score + Visa_Sponsorship_Needed + white_non_white, family = "binomial",  #Removed the relax cubic splines for age and USMLE step 1
 #                    data = test, x = TRUE, y= TRUE)  
 # #DynNom::DNbuilder(model = DynNom.model.glm, data = train)
 ```
 
-```{r}
+```{r sessionInfo}
 sessionInfo()
 ```
 
@@ -818,6 +980,7 @@ sessionInfo()
 # 
 #            NULL))
 ```
+
 
 
 
