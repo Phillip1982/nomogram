@@ -929,7 +929,7 @@ The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the 
 
 
 # Appendix, DynNom Model for Shiny Upload
-```{r DynNom}
+```{r DynNom}  
 #DynNom
 DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Gender + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + white_non_white + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match +  Medical_Degree + Military_Service_Obligation +  Visa_Sponsorship_Needed,
                    data = test, x = TRUE, y= TRUE)
