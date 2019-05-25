@@ -1,0 +1,1035 @@
+---
+title: "DRAFT:  A model to predict chances of matching into Obstetrics and Gynecology Residency"
+author: "Tyler M. Muffly, MD"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    df_print: kable
+    toc: true
+    pandoc_args: ["--wrap=none", "--top-level-division=chapter"]
+  word_document: default
+  html_document:
+    toc: true
+    toc_depth: 2
+    dev: 'svg'
+    code_folding: show
+fontsize: 12pt
+geometry: margin=1in
+---
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+library(knitr)
+opts_knit$set(root.dir = normalizePath("../"), 
+              fig.width=8, fig.height=5, 
+               echo=TRUE, 
+               warning=FALSE, message=FALSE, 
+               cache=TRUE)
+options(scipen = 6)
+```
+# Step 1: Load Cleaned Data
+Objective:  We sought to construct and validate a model that predict a medical student's chances of matching into an obstetrics and gynecology residency. 
+
+Introduction
+The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Applicants who were in the SOAP and applied to the preliminary spot were determined to be unmatched.  The data is contained in a data frame called all_data.  
+
+Install and Load packages.  See Session information at the end.  
+```{r, include=FALSE}
+# update.packages(ask = FALSE, checkBuilt = TRUE)
+if(!require(pacman))install.packages("pacman")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse")
+
+#install.packages('knitr', dependencies = TRUE)
+#devtools::install_github("yihui/knitr")
+#devtools::install_github("exploratory-io/exploratory_func")
+#devtools::install_github("rstudio/rmarkdown")
+
+packrat::packrat_mode(on = TRUE)
+```
+
+```{r}
+set.seed(123456)
+```
+
+Set working directory to files present in the Dropbox folder.
+```{r files, echo=FALSE}
+#setwd("~/Dropbox/Nomogram/nomogram")  
+```
+
+# Step 2:  Create a dataframe of independent and dependent variables
+Download cleaned data from Dropbox.  The data was cleaned in exploratory.io before coming into R.  
+```{r pressure, echo=FALSE, include=FALSE}
+#download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
+dplyr::glimpse(all_data)
+all_data <- all_data %>%
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
+```
+
+Bring in the columns that are desired for all_data.  
+```{r, echo=FALSE, cache=TRUE}
+all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
+```
+
+Data size and structure
+```{r, results="asis"}
+plot_str(all_data)
+dim(all_data)
+plot_intro(all_data)
+```
+
+```{r}
+str(all_data)
+inspectdf::inspect_types(all_data, show_plot = TRUE)
+```
+
+```{r}
+sum(is.na(all_data))
+```
+
+```{r}
+head(all_data)
+#DataExplorer::create_report(all_data)  #Error: pandoc document conversion failed with error 99
+```
+## Univariate Analysis
+```{r, results='asis'}
+DataExplorer::plot_bar(all_data)
+#DataExplorer::plot_boxplot(all_data, by = "Match_Status")
+#DataExplorer::plot_histogram(all_data)
+inspectdf::inspect_cat(all_data, show_plot = TRUE)
+inspectdf::inspect_imb(all_data, show_plot = TRUE)
+imb <- inspectdf::inspect_imb(all_data, show_plot = FALSE)
+knitr::kable(imb)
+#inspectdf::inspect_num(all_data, show_plot = TRUE, plot_layout = c(5,2)) #Breaks the Rmarkdown compiling for some reason.  Ugh.  
+```
+
+
+```{r, warning=F, message=FALSE, include=TRUE}
+all_data_ggally <- as.data.frame(all_data) 
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Age", "white_non_white", "Gender"))
+
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" ,  "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha", "USMLE_Step_1_Score"))
+
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Medical_Degree", "Visa_Sponsorship_Needed", "Count_of_Peer_Reviewed_Book_Chapter"))
+
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("US_or_Canadian_Applicant" , "Couples_Match", "Visa_Sponsorship_Needed", "Count_of_Poster_Presentation"))
+```
+
+
+```{r, echo=FALSE}
+Hmisc::label(all_data$Medical_Degree) <- "Medical Degree"
+Hmisc::label(all_data$Visa_Sponsorship_Needed) <- "Visa Sponsorship Needed"
+Hmisc::label(all_data$Age)    <- 'Age'
+units(all_data$Age) <- 'years'
+Hmisc::label(all_data$Alpha_Omega_Alpha) <- 'AOA Member'
+Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
+Hmisc::label(all_data$Gender) <- 'Gender'
+Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
+#Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
+Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+#Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
+Hmisc::label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
+Hmisc::label(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
+Hmisc::label(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentations'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
+Hmisc::label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
+Hmisc::label(all_data$white_non_white) <- 'Race' 
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
+Hmisc::label(all_data$Match_Status) <- 'Matching Status'
+```
+
+Step 3: Univariate analysis of the data.  
+I set the cutpoints based on nothing really.I like this better than the base summary command.  See the Appendix at the end of the document for univariate distributions.  
+```{r, echo=FALSE, include=FALSE}
+dd <- rms::datadist(all_data)
+options(datadist='dd')
+
+s <- summary(Match_Status ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = all_data)
+s
+```
+
+Set the Match_Status variable to be a number and a factor.  
+```{r, echo=FALSE, include=FALSE}
+all_data$Match_Status <- as.numeric(all_data$Match_Status)
+all_data$Match_Status
+all_data$Match_Status <- (all_data$Match_Status - 1)
+all_data$Match_Status #Outcome must be numeric
+```
+
+```{r, echo=FALSE, warning= FALSE, message=FALSE, include=FALSE, fig.width=7, fig.asp=1}
+plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
+```
+
+## Normality testing in R
+Should we use means or medians in table 1? 
+The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout. There is skew in age.   
+```{r, message=FALSE, echo=FALSE}
+#Examination of skewness and kurtosis for numeric values, Zhang book page 65
+hist(all_data$Age)  #There is skew in age
+```
+```{r}
+hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
+moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
+moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the Step 1 score data.  
+#Therefore only use medians.
+```
+Quantile-Quantile plot is a way to visualize the deviation from a specific probability distribution. After analyzing these plots, it is often beneficial to apply mathematical transformation (such as log) for models like linear regression. 
+```{r}
+DataExplorer::plot_qq(all_data)
+```
+
+Visual inspection is usually unreliable. It’s possible to use a significance test comparing the sample distribution to a normal one in order to ascertain whether data show or not a serious deviation from normality.There are several methods for normality test such as Kolmogorov-Smirnov (K-S) normality test and Shapiro-Wilk’s test.
+
+The null hypothesis of these tests is that “sample distribution is normal”. If the test is significant, the distribution is non-normal.  From the output, the p-value less than 0.05 implying that the distribution of the data are  significantly different from normal distribution. In other words, we can not assume the normality.
+```{r}
+shapiro.test(all_data$Age)
+shapiro.test(all_data$Count_of_Oral_Presentation)
+shapiro.test(all_data$Count_of_Poster_Presentation)
+shapiro.test(all_data$Count_of_Peer_Reviewed_Book_Chapter)
+shapiro.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts)
+shapiro.test(all_data$USMLE_Step_1_Score)
+```
+
+## Missing data
+Check to see if we have any missing data with Hmisc::naclus(all_data).  No missing data here.  
+```{r, message=FALSE, echo=FALSE,  fig.width=7, fig.asp=1}
+#Plotting NAs in the data, Page 302 of Harrell book
+na.patterns <- Hmisc::naclus(all_data)
+#na.patterns
+
+#Hmisc::naplot(na.patterns, 'na per var')  #Graphs the variables with missing data  
+#dev.off()
+
+plot(na.patterns) #Cool!! this shows who has the most missing data.  
+DataExplorer::plot_missing(all_data)
+```
+## Table 1
+Table 1: Applicant Descriptive Variables by Matching Success (1) or Failure (0)
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+table1_all_data <- arsenal::tableby(Match_Status ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=all_data, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+summary(table1_all_data, text=T, title='Table 1:  Applicant Descriptive Variables by Matching Success or Failure from 2015 to 2018', pfootnote=TRUE)
+```
+## Split the data into test and training sets
+Split the data so that we can build a model with the 2015, 2016, and 2017 data and then test it with the 2018 data we reserved. For cross validation purpose will keep the 2018 data aside from my orginal train set.  
+
+```{r, warning=FALSE, echo=TRUE, message=FALSE}
+train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
+nrow(train) 
+test <- filter(all_data, Year == c(2018)) #Test on 2018 data
+nrow(test)
+test <- test %>% select(-"Year")
+train <- train %>% select(-"Year")
+```
+
+Check Proportions of Matched
+```{r, results="asis"}
+levels(train$Match_Status) <- c("NoMatch", "Matched")
+levels(test$Match_Status) <- c("NoMatch", "Matched")
+
+# Examine the proportions of the Match_Status class lable across the datasets.
+crude_summary <- prop.table(table(all_data$Match_Status))       #Original data set proportion 
+
+prop.table(table(train$Match_Status)) #Train data set proportion
+
+prop.table(table(test$Match_Status))  #Test data set proportion
+
+kable(crude_summary, caption="2x2 Contingency Table on Matching for all_data", format="markdown")
+```
+##Compare the datasets of train and test
+```{r, results="asis", include=FALSE}
+summary(arsenal::comparedf(train, test))
+```
+
+Exploiting feature interactions (like should I combine variable A with variable B?)
+
+Table: Applicant Descriptive Variables by Train vs. Test
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results="as.is"}
+all_data_train_test <- all_data %>% dplyr::mutate(dataset = dplyr::recode(Year, `2015` = "train", `2016` = "train", `2017` = "train", `2018` = "test"))
+#View(all_data_train_test)
+
+train_test_all_data <- arsenal::tableby(interaction(Match_Status, dataset) ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=all_data_train_test, control = tableby.control(test = TRUE, total = F, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+
+table_train_test <- summary(train_test_all_data, text=T, title='Table:  Characteristics of the Test and Train Groups', pfootnote=TRUE)
+
+knitr::kable(table_train_test)
+```
+
+## Relaxed Cubic Splines For Continuous Variables
+```{r, echo=TRUE, include=FALSE, fig.width=7, fig.asp=1}
+#Age Splines
+Hmisc::rcspline.eval(x=all_data$Age, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Age, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Age", xlab = "Age (years)", ylab = "Probability", noprint = TRUE, m = 500) #In the model Age should have rcs(Age, 5)
+#Predictions with group size of 500 patients (triangles) and location of knot (arrows).
+```
+
+```{r, echo=FALSE, include=FALSE,  fig.width=7, fig.asp=1}
+#USMLE_Step_1_Score Splines
+Hmisc::rcspline.eval(x=all_data$USMLE_Step_1_Score, nk=4, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$USMLE_Step_1_Score, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for USMLE Step 1 Score", xlab = "USMLE Step 1 Score", ylab = "Probability", noprint = TRUE, m = 500) #In the model USMLE_Step_1 should have rcs(USMLE_Step_1, 6)
+
+
+#Count of Posters
+Hmisc::rcspline.eval(x=all_data$Count_of_Poster_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Poster_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Poster Presentations", xlab = "Count of Poster Presentations", ylab = "Probability", noprint = TRUE, m = 500) #In the model Count of Poster presentations should have rcs(Count of Poster Presentations, 4)
+
+#Count of Oral Presentations
+Hmisc::rcspline.eval(x=all_data$Count_of_Oral_Presentation, nk=5, type="logistic", inclx = TRUE, knots.only = TRUE, norm = 2, fractied=0.05)  #tells where the knots are located
+
+Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match_Status, model = "logistic", nk=5, showknots = TRUE, plotcl = TRUE, statloc = 11, main = "Estimated Spline Transformation for Oral Presentations", xlab = "Count of Oral Presentations", ylab = "Probability", noprint = TRUE, m = 1000) #In the model Count of Oral Presentations should have rcs(Count of Oral Presentations, 3)
+```
+
+# Step 4:  Build a Logistic Regression Model
+Create a Kitchen Sink model with all factors first. This is essentially a screening model with all variables. I relaxed the cubic splines with the guidance from above.  
+```{r}
+d <- datadist(train)
+options(datadist = "d")
+
+kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+
+kitchen.sink
+```
+
+Are there predictor interactions?
+```{r, echo=TRUE}
+lm.fit2 <- lm(Match_Status ~ (white_non_white + Age + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree)^2, data = all_data)
+```
+
+```{r, include=FALSE}
+lm.fit3 <- anova(lm.fit2)
+```
+
+```{r}
+lm.fit3
+```
+
+```{r, warning=FALSE}
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
+knitr::kable(kitchen.sink.model.stats, caption = "Performance statistics of the Kitchen Sink Model Using All Variables", digits=2)
+```
+## Check for collinearity
+```{r}
+car::vif(kitchen.sink)
+```
+
+
+## Evaluating the signficance of kitchen.sink variables 
+According to the ANOVA: USMLE_Step_1_Score, Age, and US_or_Canadian_Applicants are predictors.  The anova() function for the model object allows to see the null and residuals deviances. The difference between these two deviances shows how well the model is performing against the null deviance. The residuals deviance column allows to see the drop of deviance value by additional respective predictor term added.
+```{r, echo=TRUE, message=FALSE,fig.width=7, fig.asp=1}
+plot(anova(kitchen.sink, test = 'Chisq'), cex=0.9, cex.lab=0.9, cex.axis = 0.7)
+```
+## Fast Backwards Factor Selection
+#Factor Selection using Fast Backwards Selection on kitchen.sink model using rms to do a ROUGH evaluation.  Stepwise fitting methods are heavily criticized because when you have a long list of candidate predictors, it’s computationally infeasible to try all possible combinations.
+```{r, echo=TRUE}
+rms::fastbw(kitchen.sink, rule = "aic")
+```
+
+## Correlation overview
+In this kind of plot we want to look for the bright, large circles which immediately show the strong correlations (size and shading depends on the absolute values of the coefficients; color depends on direction).  This shows whether two features are connected so that one changes with a predictable trend if you change the other. The closer this coefficient is to zero the weaker is the correlation. Anything that you would have to squint to see is usually not worth seeing!  
+
+Match_Status is correlated with US_or_Canadian_applicant, USMLE_Step_1, Visa_Sponsorship_Needed, and White_non_white.  
+```{r, warning= FALSE, message=FALSE}
+set.seed(0)
+train_corrleation <- train %>% 
+  mutate(Gender = fct_recode(Gender,"0" = "Male", "1" = "Female")) %>%
+  mutate(Couples_Match = fct_recode(Couples_Match,"0" = "No", "1" = "Yes")) %>%
+  mutate(US_or_Canadian_Applicant = fct_recode(US_or_Canadian_Applicant,"0" = "No", "1" = "Yes")) %>%
+  mutate(Medical_Education_or_Training_Interrupted = fct_recode(Medical_Education_or_Training_Interrupted,"0" = "No", "1" = "Elections_Senior_Year", "2" = "Yes")) %>%
+  mutate_all(as.integer)%>%
+  stats::cor(use="pairwise.complete.obs") %>%
+  corrplot::corrplot(type="lower", diag=FALSE, order = "hclust", tl.cex = 0.5, tl.col = "black", sig.level = "0.01", insig = "blank", pch = TRUE)
+```
+
+p-value associated with the null hypothesis of 0 correlation, small values indicate evidence that the true correlation is not equal to 0.
+```{r}
+inspect_cor(all_data, show_plot = FALSE, alpha = 0.05)
+```
+
+Usually it’s most interesting to start with the strong signals in the correlation plot and to examine them more in detail.
+
+# Step 5: Factor Selection using a LASSO model (Penalized Logistic Regression)
+Here, we use Lasso for simplicity and interpretability. The aim is to avoid over-parametrization and unnecessary model bias by carrying feature selection on-the-go. Key to this task will be cross-validation.  Start by creating a custom train control providing the number of cross-validations and setting the classProbs to TRUE for logistic regression.  
+```{r, echo=TRUE}
+# Create custom trainControl: myControl
+set.seed(1978)
+myControl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 5,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE, # IMPORTANT!
+  verboseIter = FALSE)
+
+train$Match_Status <- as.factor(train$Match_Status)
+test$Match_Status <- as.factor(test$Match_Status)
+
+#Levels of the target outcome variable for glmnet need to be words and not numbers.  
+levels(train$Match_Status) <- c("NoMatch", "Matched")
+levels(test$Match_Status) <- c("NoMatch", "Matched")
+```
+
+Create the LASSO using glmnet within the caret package.  Here we are solely using the train dataset to determine what varaiables predict the outcome.  
+```{r}
+# Train glmnet with custom trainControl and tuning: model
+lasso.mod <- caret::train(
+  Match_Status ~ .,
+  data = train,
+  family = "binomial",
+  tuneGrid = expand.grid(
+    alpha = 0:1,
+    lambda = seq(0.0001, 1, length = 20)
+  ),
+  method = "glmnet",
+  metric = "ROC",
+  trControl = myControl)
+```
+
+```{r, echo=TRUE, include=FALSE}
+# Print model to console
+(lasso.mod)
+
+#summary(lasso.mod)
+#lasso.mod[["results"]]
+lasso.mod$bestTune #Final model is more of a ridge and less of a LASSO model
+best <- lasso.mod$finalModel
+coef(best, s=lasso.mod$bestTune$lambda) ###Look for the largest coefficient
+```
+
+Plot the results of the lasso.mod so we can see if this is more ridge or more lasso.  0 = ridge regression and 1 = LASSO regression, here ridge is better
+```{r, fig.width=7, fig.asp=1}
+plot(lasso.mod)
+```
+## Plot LASSO factors
+Plot the individual variables by lambda.  Saves the lasso.mod to an RDS file for later use.  
+```{r,  fig.asp=1}
+plot(lasso.mod$finalModel, xvar = 'lambda', label = TRUE)
+#legend("topright", lwd = 1, col = 1:5, legend = colnames(train), cex = .6)
+#https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+colnames(train[1:17])
+
+saveRDS(lasso.mod, "best.LASSO.rds")  #save the model
+```
+
+Makes predictions of matching based on the lasso.mod using the training data.  
+```{r, echo=TRUE, warning=FALSE, include=FALSE}
+###
+predict(lasso.mod, newx = x[1:5,], type = "prob", s = c(0.05, 0.01))
+```
+
+GLMNet to do factor selection with the previously made LASSO model
+And we use the glmnet library to determine the optimal penalization parameter. Note that this must be assigned through cross validation; here, we use 50-fold cross validation (only suitable in small datasets).  GLMnet accepts data in a matrix format so the data format was changed before giving it to glmnet.cv.  
+```{r, echo=TRUE, message=FALSE, include=TRUE}
+`%ni%`<-Negate(`%in%`)
+
+# save the outcome for the glmnet model, could use dummyVars with fullRan=FALSE can remove collinearity by removing male.gender so you are either male or female
+
+x <- model.matrix(train$Match_Status~., data=train)
+class(x)
+x <- x[,-1]  #Removes intercept
+
+set.seed(356)
+glmnet1<-cv.glmnet(x=x,y=train$Match_Status,nfolds=10,alpha=.5, family="binomial")
+plot(glmnet1,main = "Misclassification Error")
+```
+The left vertical line represents the minimum error, and the right vertical line represents the cross-validated error within 1 standard error of the minimum. LASSO, least absolute shrinkage and selection operator
+
+If you look at this graph we ran the model with a range of values for lambda and saw which returned the lowest cross-validated error. You'll see that our cross-validated error remains consistent until we hit the dotted lines, where we start to see our model perform very poorly due to underfitting with misclassification error.  Cross validation is an essential step in studies to help up us not only calibrate the parameters of our model but estimate the prediction accuracy with unseen data.
+
+Variable selection using LASSO in the train dataset
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+c<-coef(glmnet1,s='lambda.min',exact=TRUE)
+inds<-which(c!=0)
+variables<-row.names(c)[inds]
+variables<-variables[variables %ni% '(Intercept)']
+#variables  ###What variables should be included in the model per LASSO!!!
+```
+
+```{r, results="asis"}
+knitr::kable(variables, caption = "Variables Chosen by LASSO to Predict Matching into OBGYN based on the Train Data (2015, 2016, 2017)")
+```
+## Measuring Strength and Direction of Predictors
+I plotted everything on a bar graph so we can easily compare the strongest predictors and the direction they affect the model:
+```{r}
+#https://amunategui.github.io/supervised-summarizer/index.html
+GetSummaryPlot <- function(objdfscaled0, objdfscaled1, predictorName, plotit=TRUE) {
+     require(ggplot2)
+    
+     stats0 <- (summary(objdfscaled0[,predictorName]))
+     stats0 <- c(stats0[1:6])
+     stats1 <- (summary(objdfscaled1[,predictorName]))
+     stats1 <- c(stats1[1:6])
+     stats <- data.frame('ind'=c(1:6), 'stats1'=stats1,'stats0'=stats0)
+    
+     spread <- ((stats1[[1]] - stats0[[1]]) +
+                     (stats1[[2]] - stats0[[2]]) +
+                     (stats1[[3]] - stats0[[3]]) +
+                     (stats1[[4]] - stats0[[4]]) +
+                     (stats1[[5]] - stats0[[5]]) +
+                     (stats1[[6]] - stats0[[6]]))
+    
+     if (plotit) {
+          print(paste('Scaled spread:',spread))
+          p <- ggplot(data=stats, aes(ind)) +
+               geom_line(aes(y = stats1, colour = "stats1")) +
+               geom_line(aes(y = stats0, colour = "stats0")) +
+               scale_x_discrete(breaks = 1:6,
+                                labels=c("min","1q","median","mean","3q","max")) +
+               ylab(predictorName) + xlab(paste('Spread:',spread))
+          return (p)
+     } else {
+          return (spread)
+     }
+}
+
+#Create predictorsNames variable
+outcomeName <- 'Match_Status'
+predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
+# Temporarily remove the outcome variable before scaling the data set
+titanicDF <- all_data
+outcomeValue <- titanicDF$Match_Status
+dim(titanicDF)
+
+# binarize all factors
+require(caret)
+titanicDF$Match_Status <- as.numeric(titanicDF$Match_Status)
+levels(titanicDF$Match_Status)
+titanicDummy <- dummyVars("~.",data=titanicDF, fullRank=F)
+titanicDF <- as.data.frame(predict(titanicDummy,titanicDF))
+head(titanicDF)
+
+# scale returns a matrix so we need to tranform it back to a data frame
+scaled_titanicDF <- as.data.frame(scale(titanicDF))
+scaled_titanicDF$Match_Status <- outcomeValue
+# split your data sets
+scaled_titanicDF_0 <- scaled_titanicDF[scaled_titanicDF[,outcomeName]==0,]
+scaled_titanicDF_1 <- scaled_titanicDF[scaled_titanicDF[,outcomeName]==1,]
+    
+outcomeName <- 'Match_Status'
+predictorNames <- names(titanicDF)[!names(titanicDF) %in% outcomeName]
+
+for (predictorName in predictorNames)
+        print(paste(predictorName,':',GetSummaryPlot(scaled_titanicDF_0,
+                scaled_titanicDF_1, predictorName, plotit=FALSE)))
+
+
+summaryImportance <- c()
+variableName <- c()
+for (predictorName in predictorNames) {
+     summaryImportance <-  c(summaryImportance, GetSummaryPlot(scaled_titanicDF_0, scaled_titanicDF_1, predictorName, plotit=FALSE))
+     variableName <- c(variableName, predictorName)
+}
+results <- data.frame('VariableName'=variableName, 'Weight'=summaryImportance)
+
+# display variable importance on a +/- scale 
+results <- results[order(results$Weight),]
+results <- results[(results$Weight != 0),]
+
+par(mar=c(5,15,4,2)) # increase y-axis margin. 
+xx <- barplot(results$Weight, width = 0.85, 
+              main = paste("Variable Importance of all_data - Matching"), horiz = T, 
+              xlab = "< (-) importance >  < neutral >  < importance (+) >", axes = FALSE, 
+              col = ifelse((results$Weight > 0), 'blue', 'red')) 
+axis(2, at=xx, labels=results$VariableName, tick=FALSE, las=2, line=-0.3, cex.axis=0.6)  
+
+
+```
+
+# Step 6: Revise Model with selected factors
+Creating a more parsiomonious model using the variables selected by LASSO in the train dataset. I made the model with lrm so I could fit it to a rms::nomogram function potentially.  
+```{r, echo=TRUE, results="asis", warning=FALSE}
+d <- datadist(test)
+options(datadist = "d")
+
+lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+knitr::kable(broom::tidy(lrm.with.lasso.variables$stats), digits =2, caption = "Performance statistics of the Training Model")
+lrm.with.lasso.variables$stat[[6]]  #C-statistic
+```
+
+## Check for collinearity
+For a given predictor, multicollinearity can assessed by computing a score called the variance inflation factor (or VIF), which measures how much the variance of a regression coefficient is inflated due to multicollinearity in the model.  The smallest possible value of VIF is one (absence of multicollinearity). As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity (James et al. 2014).
+```{r}
+m <- car::vif(lrm.with.lasso.variables)
+print(m)
+
+#Where is the multicolinearity coming from?  Perturb::colldiag helps to figure that out.  
+cd<-perturb::colldiag(m)
+cd
+print(cd,fuzz=.3)
+```
+
+## Remove variables with multicollinearity and rebuild model
+```{r, echo=TRUE, results="asis", warning=FALSE}
+d <- datadist(test)
+options(datadist = "d")
+
+#Removed Age, AOA and Medical Degree, C-statistic dropped from 0.84 to 0.83
+lrm.with.lasso.variables <- lrm(Match_Status ~ Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender +  Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+knitr::kable(broom::tidy(lrm.with.lasso.variables$stats), digits =2, caption = "Performance statistics of the Training Model")
+lrm.with.lasso.variables$stats[[6]] #C-statistic
+```
+AUC of this pared down model is `r (lrm.with.lasso.variables$stats[[6]])`.
+
+```{r, echo=FALSE,  fig.width=7, fig.asp=1}
+lrm.with.lasso.variables
+#dev.off()
+plot(anova(lrm.with.lasso.variables), cex=0.5, cex.lab=0.4, cex.axis = 0.4)
+```
+
+
+```{r, include=F}
+summary(lrm.with.lasso.variables)
+```
+## Odds ratios of the `train` dataset
+
+#Table 2 of odds ratios in graph form in the train dataset.  
+```{r, echo=TRUE,  fig.width=7, fig.asp=1}
+plot(summary(lrm.with.lasso.variables), cex=0.5, cex.lab=0.7, cex.axis = 0.7)
+```
+
+# Step 7: Odds ratios for train data
+ #https://rstudio-pubs-static.s3.amazonaws.com/283447_fd922429e1f0415c89b93b6da6dc1ccc.html
+
+```{r, results="asis"}
+#For example, increase one unit in age will decrease the log odd of survival by 0.039; being a male will decrease the log odd of survival by 2.7 compared to female; and being in class2 will decrease the log odd of survival by 0.92, being in class3 will decrease the log odd of survival by 2.15. 
+oddsratios <- as.data.frame(exp(cbind("Adjusted Odds ratio" = coef(lrm.with.lasso.variables), confint.default(lrm.with.lasso.variables, level = 0.95))))
+#I'm not sure how to set the significant digits
+knitr::kable(oddsratios, digits = 2)
+```
+Annotation for Manuscript Table 2:  A:  Nonlinear component A of the function describing the variable and the probability of matching into OBGYN.  B:  Nonlinear component B of the function describing the variable and the probability of matching into OBGYN.  C:  Nonlinear component C of the function describing the variable and the probability of matching into OBGYN.  
+
+# Step 8: Use Model to predict match for Test Data
+Shift Gears: Test Accuracy of Model on Training Data, Use glmnet model on 2018 TEST data
+Here the code is creating a vector called predictorsNames so that we can reuse the model by changing the variables in predictorsNames in the future prn.  Run the 2018 data through the train model.  
+```{r, warning=FALSE, message=FALSE}
+#Create predictorsNames variable
+outcomeName <- 'Match_Status'
+predictorsNames <- names(test)[names(test) != outcomeName]  #Removes outcome from list of predictrs
+# get predictions on your testing data
+b <- model.matrix(test$Match_Status~., data=test) #x <- model.matrix(train$Match_Status~., data=train)
+a <- b[,-1]  #Removes intercept from the matrix as we did for model
+
+predictions<-predict(object = glmnet1, newx=a, s="lambda.min", family = "binomial")  #What is the matrix?
+#predictions
+
+d <- as.data.frame(test[,outcomeName])
+levels(d$Match_Status) <- c("NoMatch", "Matched")
+
+test$Match_Status <- as.numeric(test$Match_Status)  #pROC only accepts numeric variables, not a matrix
+test$Match_Status <- (test$Match_Status - 1)
+predictions <- as.numeric(predictions)
+```
+
+First, we need to fit lrm.with.lasso.variables in GLM, rather than rms to get the AUC.  There is probably a better way to do this.  Using the test data set.  Also built the same model in lrm.  
+```{r, echo=TRUE, warning=FALSE}
+test$Match_Status <- as.integer(test$Match_Status+2)
+test$Match_Status <- as.factor(test$Match_Status)
+
+train.glm.with.lasso.variables  <- glm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white,
+                   data = test, family = "binomial"(link=logit))  
+
+train.lrm.with.lasso.variables <- lrm(Match_Status ~ rcs(Age, 5) + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + Visa_Sponsorship_Needed + white_non_white, data = train, x = T, y = T)
+```
+
+```{r}
+#lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
+test.model.stats <- as.data.frame(train.lrm.with.lasso.variables$stats)
+knitr::kable(test.model.stats, caption = "Performance statistics of the Testing Model", digits=2)
+```
+
+The Receiver Operating Characteristic (ROC) curve is plotted below for false positive rate (FPR) in the x-axis vs. the true positive rate (TPR) in the y-axis. It shows the detection of true positive while avoiding the false positive. This is the same as measuring the unspecificity (1 - specificity) in x-axis, against the sensitivity in y-axis. This ROC curve in particular shows that its very closed to the perfect classifier meaning that its better at identifying the positive values. 
+
+## Use Model to predict match Status for Test Data
+```{r}
+#Use Model to predict match Status for Test Data
+prob <- predict(train.glm.with.lasso.variables, newdata = test, type="response")
+pred <- prediction(prob, na.omit(test)$Match_Status)
+```
+
+#ROC: Type 1 using ggplot with nice controls
+```{r}
+# rest of this doesn't need much adjustment except for titles
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+auc <- performance(pred, measure="auc")
+auc <- round(auc@y.values[[1]],3)
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="GLM")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(aes(y=tpr)) +
+  labs(title = paste0("ROC Curve with area under the curve = ", auc),
+       subtitle = "Model A for test data")
+```
+
+
+ROC Curve type 2 with nice labels on the x and y
+```{r}
+pred <- prediction(prob, test$Match_Status)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf)
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+auc  
+```
+
+ROC Curve Type 3 with nice diagnal line but half of the formula printed
+```{r}
+#library(rJava)
+#Deducer::rocplot(glm.with.lasso.variables, diag = TRUE, prob.label.digits = TRUE, AUC = TRUE)
+```
+
+ROC Curve Type 4, ROC in color
+```{r}
+perf <- performance(pred, 'tpr','fpr')
+plot(perf, colorize = TRUE, text.adj = c(-0.2,1.7), main="Receiver-Operator Curve for Model A")
+
+#Plots of Sensitivity and Specificity
+perf1 <- performance(pred, "sens", "spec")
+plot(perf1, colorize = TRUE, text.adj = c(-0.2,1.7), main="Sensitivity and Specificity for Model A")
+
+## precision/recall curve (x-axis: recall, y-axis: precision)
+perf2 <- performance(pred, "prec", "rec")
+plot(perf2, colorize = TRUE, text.adj = c(-0.2,1.7), main="Precision and Recall for Model A")
+```
+
+```{r,  fig.width=7, fig.asp=1}
+###NOMOGRAM 
+#fun.at - Demarcations on the function axis: "Matching into obgyn"
+#lp=FALSE so we don't have the logistic progression
+d <- datadist(test)
+options(datadist = "d")
+
+nomo.from.lrm.with.lasso.variables <- rms::nomogram(train.lrm.with.lasso.variables, 
+         #lp.at = seq(-3,4,by=0.5),
+        fun = plogis, 
+        fun.at = c(0.001, 0.01, 0.05, seq(0.2, 0.8, by = 0.2), 0.95, 0.99, 0.999), 
+        funlabel = "Chance of Matching in OBGYN", 
+        lp =FALSE,
+        #conf.int = c(0.1,0.7), 
+        abbrev = F,
+        minlength = 9)
+nomogramEx(nomo=nomo.from.lrm.with.lasso.variables ,np=1,digit=2)  #Gives the polynomial formula
+
+nomo_final <- plot(nomo.from.lrm.with.lasso.variables, lplabel="Linear Predictor",
+      cex.sub = 0.8, cex.axis=0.4, cex.main=1, cex.lab=0.3, ps=10, xfrac=.7,
+                   #fun.side=c(3,3,1,1,3,1,3,1,1,1,1,1,3),
+                   #col.conf=c('red','green'),
+                   #conf.space=c(0.1,0.5),
+                   label.every=1,
+                   col.grid = gray(c(0.8, 0.95)),
+                   which="Match_Status")
+#print(nomo.from.lrm.with.lasso.variables)
+```
+#Annotation:  Manuscript Figure 1:  The first row called points assigned to each variable's measurement from rows 2-12, which are variables included in predictive model.  Assigned points for all variables are then summed and total can be located on line 13 (total points).  Once total points are located, draw a vertical line down to the bottom line to obtain the predicted probability of matching.  For non-linear variables (count of oral presentations, etc.) values should be erad from left to right.   
+
+
+# Step 10: Calibration of the model based on the test data.  
+The ticks across the x-axis represent the frequency distribution (may be called a rug plot) of the predicted probabilities. This is a way to see where there is sparsity in your predictions and where there is a relative abundance of predictions in a given area of predicted probabilities.
+
+The "Apparent" line is essentially the in-sample calibration.
+
+The "Ideal" line represents perfect prediction as the predicted probabilities equal the observed probabilities.
+
+The "Bias Corrected" line is derived via a resampling procedure to help add "uncertainty" to the calibration plot to get an idea of how this might perform "out-of-sample" and adjusts for "optimistic" (better than actual) calibration that is really an artifact of fitting a model to the data at hand. This is the line we want to look at to get an idea about generalization (until we have new data to try the model on).
+
+When either of the two lines is above the "Ideal" line, this tells us the model underpredicts in that range of predicted probabilities. When either line is below the "Ideal" line, the model overpredicts in that range of predicted probabilities.
+
+Applying to your specific plot, it appears most of the predicted probabilities are in the higher end (per rug plot). The model overall appears to be reasonably well calibrated based on the Bias-Corrected line closely following the Ideal line; there is some underprediction at lower predicted probabilities because the Bias-Corrected line is above the Ideal line around < 0.3 predicted probability.
+
+The mean absolute error is the "average" absolute difference (disregard a positive or negative error) between predicted probability and actual probability. Ideally, we want this to be small (0 would be perfect indicating no error). This seems small in this plot, but may be situation dependent on how small is small. 
+```{r,  fig.width=7, fig.asp=1}
+calib <- rms::calibrate(train.lrm.with.lasso.variables, method = "boot", boot=1000, data = test, rule = "aic", estimates = TRUE)  #Plot test data set
+
+plot(calib, legend = TRUE, subtitles = TRUE, cex.subtitles=0.75, xlab = "Predicted probability according to model", ylab = "Observation Proportion of Matching")
+```
+
+#Sample data frame for cases to use in man vs. machine
+Insert code to randomnly sample the data rows.  
+```{r}
+set.seed(123)
+sample <- dplyr::sample_n(all_data, 10)
+#head(sample)
+#View(sample)
+```
+
+Medical student 1 is a 
+`r sample$Age[1]` `r tolower(sample$white_non_white[1])` `r tolower(sample$Gender[1])`
+who presents as a 
+`r sample$US_or_Canadian_Applicant[1]`
+from a 
+`r sample$Medical_Degree[1]` 
+medical school.  This medical student did 
+`r sample$Medical_Education_or_Training_Interrupted[1]` 
+have their medical education interrupted for any reason.  
+
+On USMLE Step 1 the student scored
+`r sample$USMLE_Step_1_Score[1]`
+.  The student was 
+`r sample$Alpha_Omega_Alpha[1]`
+in Alpha Omega Alpha.  
+
+The medical student's CV includes:
+`r sample$Count_of_Oral_Presentation[1]` 
+oral presentations from the podium.  
+
+`r sample$Count_of_Poster_Presentation[1]` 
+poster presentations.
+
+`r sample$Count_of_Peer_Reviewed_Journal_Articles_Abstracts[1]`
+peer-reviewed journal articles.  
+
+`r sample$Count_of_Peer_Reviewed_Book_Chapter[1]` 
+peer-reviewed book chapters. 
+
+`r sample$Count_of_Peer_Reviewed_Online_Publication[1]`
+online publications.  
+
+Lastly, the medical student had 
+`r sample$Visa_Sponsorship_Needed[1]`
+need for visa sponsorship from the training institution and 
+`r sample$Couples_Match[1]`
+a need for a couples match.  
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#funModeling::df_status(all_data)
+funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
+
+#Summary stats of the numerical data showing means, medians, skew
+funModeling::profiling_num(all_data)
+
+#Shows the variable frequency charted by matching status
+
+funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+```
+
+# Appendix, Exploratory Data Analysis
+The funModeling package will first give distributions for numerical data and finally creates cross-plots.  This also saves the output of the distributions to the results folder.
+
+# Appendix, Supplemental Table:  Descriptive analysis of all variables considered in the training set along with their association to matching.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+table1_all_data <- arsenal::tableby(Match_Status ~
+                                      white_non_white + 
+                                      Age + 
+                                      Gender + 
+                                      Couples_Match + 
+                                      #Expected_Visa_Status_Dichotomized + 
+                                      US_or_Canadian_Applicant + 
+                                      #Medical_School_Type + 
+                                      Medical_Education_or_Training_Interrupted + 
+                                      #Misdemeanor_Conviction + 
+                                      Alpha_Omega_Alpha + 
+                                      #Gold_Humanism_Honor_Society + 
+                                      Military_Service_Obligation + 
+                                      USMLE_Step_1_Score + 
+                                      Military_Service_Obligation + 
+                                      Count_of_Poster_Presentation + 
+                                      Count_of_Oral_Presentation + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Book_Chapter + 
+                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Online_Publication + 
+                                      Visa_Sponsorship_Needed +
+                                      Medical_Degree,
+                                    data=train, control = tableby.control(test = TRUE, total = TRUE, digits = 1L, digits.p = 2L, digits.count = 0L, numeric.simplify = F, numeric.stats = c("median", "q1q3"), cat.stats = c("Nmiss","countpct"), stats.labels = list(Nmiss = "N Missing", Nmiss2 ="N Missing", meansd = "Mean (SD)", medianrange = "Median (Range)", median ="Median", medianq1q3 = "Median (Q1, Q3)", q1q3 = "Q1, Q3", iqr = "IQR",range = "Range", countpct = "Count (Pct)", Nevents = "Events", medSurv ="Median Survival", medTime = "Median Follow-Up")))
+
+summary(table1_all_data, text=T, title='Supplemental Table: Descriptive analysis of all variables considered in the training set along with their association to matching', pfootnote=TRUE)
+```
+#Appendix, Data in a private repository to be shared with the journal
+http://dx.doi.org/10.17632/3rtg46skbd.1
+
+Medical student #1 is a `r sample$Age[1]`year old `r sample$white_non_white[1]` `r sample$Gender[1]` who is a US Senior medical graduate
+
+https://denverhealth.az1.qualtrics.com/WRQualtricsControlPanel/?Section=SV_3QmslHJJmin4xBX&SubSection=&SubSubSection=&PageActionOptions=&TransactionID=1&Repeatable=0&restrictToBrand=1&criteria=&ContextSection=EditSection
+
+
+# Abstract DRAFT
+Background:  A model that predicts a medical student's chances of matching into an obstetrics and gynecology residency may facilitate improved counseling and fewer unmatched medical students.
+
+Objective:  We sought to construct and validate a model that predicts a medical student's chance of matching into obstetrics and gynecology residency.
+
+Study Design:  In all, `r nrow(all_data)` medical students applied to a residency in Obstetrics and Gynecology at the University of Colorado from 2015 to 2018 were analyzed.  The data set was splint into a model training cohort of `r nrow(train)` who applied in 2015, 2016, and 2017 and a separate validation cohort of `r nrow(test)` in 2018.  In all, `r ncol(all_data)` candidate predictors for matching were collected.  Multiple logistic models were fit onto the training choort to predict matching.  Variables were removed using least absolute shrinkage and selection operator reduction to find the best parsimonious model.  Model discrimination was measured using the concordance index.  The model was internally valideated using 1,000 bootstrapped samples and temporarly validated by testing the model's performance in the validation cohort.  Calibration curves were plotted to inform educators about the accuracy of predicted probabilities.
+
+Results:  The match rate in the training cohort was `r round((prop.table(table(train$Match_Status))[[2]]*100),1)`% (I need help getting 95% CI).  The model had excellent discrimination and calibration during internal validation (bias-corrected concordance index,`r round((lrm.with.lasso.variables$stats[6]),2)`) and maintained accuracy during temportal validation using the separate validation cohort (concordance index,`r round((train.lrm.with.lasso.variables$stats[6]),2)`).
+
+# Prose of the paper DRAFT
+Materials and Methods:  This was an institutional review board exempt retrospective cohort analysis of medical students who applied to Obstetrics and Gynecology (OBGYN) residency from 2015 to 2018.  Guidelines for transparent reporting of a multivariable prediction model for individual outcomes were used in this study.(https://www.equator-network.org/reporting-guidelines/tripod-statement/).  Eligible students were identified if they applied to OBGYN residency during the study period.  The outcome of the model was defined as matching or not matching into residency for the specific application year.  Individual predictors of successfully* matching were compiled from a literature review, expert opinion, and judgment then collected from the Electronic Residency Application Service materials.
+
+Once the data set was complete it was divided into a model training and test set.  *When an external validation data set is unavailable to test a new model but an existing modeling data set is sufficiently large, as in this case, it is recommended to split by time and develop the model using data from one period and evaluate its performance from data from a future period.  We arbitrarily chose to divide the cohort into a training set of 2015 to 2017 data and a training set of 2018 data.
+
+In all, ?? candidate risk factors were considered for fitting on the training data set (supplmental table).  Variable selection was done using a peenalized logistic regression called least absolute shrinkage and selection operator (LASSO).  The LASSO model is a regression analysis method that performs both variable selection and regularization in order to enhance the prediction accuracy and interpretability of the statistical model it produces.  We elected to use LASSO to choose which covariates to include over stepwise selection because the latter only improves prediction accuracy in certain cases, such as when only a few covariates have a strong relationship with the outcome.
+
+The logistic model’s discriminative ability was measured by the area under the curve (AUC) for the receiver operating characteristic curve based on the sensitivity and specificity of the model.  An AUC value closer to 1 indicates a better prediction of the outcome and an AUC value of 0.5 indicates that the model predicts no better than chance. The AUC is also a representation of the concordance index and measures the model’s ability to generate a higher predicted probability of a successful match* occurring in a medical student who has a ????.   For example, if we have a pair of medical students, in which one medical student matches and the other does not, the concordance index measures the model’s ability to assign a higher risk of not matching to the medical student who successfully matches. All concordance indices and receiver operating characteristic curves were internally validated using a 1,000 bootstrap resample to correct for bias and overfitting within the model. The bootstrapping method of validation has been shown to be superior to other approaches to estimate internal validity. Calibration curves were also plotted to depict the relationship between the model’s predicted outcomes against the cohort’s observed outcome, where a perfectly calibrated model follows a 45° line.
+
+After the best model was selected and internally validated, the model was compared with the best currently available method of estimating risk, that is, an expert medical educator’s predictions. To perform these comparisons, a subset of 50 participants was randomly selected for comparing the probability of matching between the model and the panel of experts. These ?? participants were used to compare predictions of the models with experts’ predictions and not as a true independent validation subset. The model was rebuilt using the remaining participants in the data set excluding the 50 randomly selected participants. The candidate risk factors of these 50 participants were given to 20 “expert” medical educators with representation from each of the *** for review resulting in 1,000 expert predictions and 50 model predictions for each outcome. All medical educators were considered to be experienced in counseling medical students regarding OBGYN matching. Each of the 20 experts were asked to consider each medical student’s data from all ??? variables among the 50 randomly selected students and provide their best estimated outcome by answering the following question: “Out of 100 medical students with these exact characteristics, estimate the number of medical students who would not matching into OBGYN during the 2019 application year.” Individual medical educators’ predictions were not averaged to yield a single value because incorporating each medical educator’s predictions substantially increased statistical power. The model’s predictions were compared with the experts’ predictions, which included all risk factors, to determine which was most accurate. The difference in accuracy was determined by using a bootstrap method from their respective receiver operating characteristic curves. All analyses were performed using R 3.5.
+
+Results:  A total of `r nrow(all_data)` applied to obstetrics and gynecology residency at the University of Colorado from 2015 to 2018.  The overall mean rate of matching in the training cohort was `r table(train$Match_Status)[[2]]` of `r nrow(train)` was (`r round((prop.table(table(train$Match_Status))[[2]]*100),1)`%).
+
+The unadjusted comparison of the `r ncol(all_data)` candidate predictors in the training cohort are presented in Supplemental Table 1.  To identify predictors from the candidates we employed least absolute shrinkage and selection operator (LASSO).  Regularisation techniques change how the model is fit by adding a penalty for every additional parameter you have in the model.
+
+`r length(variables)` variables were included within the final model.  Applicants from the United States or Canada, high USMLE Step 1 scores, female gender, White race, no visa sponsorship needed, membership in Alpha Omega Alpha, no interruption of medical training, couples matching, and allopathic medical training increased the chances of matching into OBGYN.  In contrast, more oral presentations, increasing age, a higher number of peer-reviewed online publications, an increased number of authored book chapters, and a higher count of poster presentations all decreased the probability of matching into OBGYN (table 2).  The nomogram illustrates the strength of association of the predictors to the outcome as well as the nonlinear associations between age, count of Oral Presentations, count of peer−reviewed book chapters and the chances of matching (Figure 1).
+
+
+# Appendix, DynNom Model for Shiny Upload
+```{r DynNom}  
+#DynNom
+DynNom.model.lrm  <- rms::lrm(Match_Status ~ rcs(Age, 5) + Gender + US_or_Canadian_Applicant +  rcs(USMLE_Step_1_Score, 4) + white_non_white + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match +  Medical_Degree + Military_Service_Obligation +  Visa_Sponsorship_Needed,
+                   data = test, x = TRUE, y= TRUE)
+
+#DynNom::DynNom.lrm(model = DynNom.model.lrm, data = test,  clevel = 0.95)  
+
+# Publish to shiny
+# getwd()
+# DynNom.model.glm  <- glm(Match_Status ~ Age + Alpha_Omega_Alpha + Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Book_Chapter + Couples_Match + Gender + Medical_Degree + Military_Service_Obligation + US_or_Canadian_Applicant +  USMLE_Step_1_Score + Visa_Sponsorship_Needed + white_non_white, family = "binomial",  #Removed the relax cubic splines for age and USMLE step 1
+#                    data = test, x = TRUE, y= TRUE)  
+# #DynNom::DNbuilder(model = DynNom.model.glm, data = train)
+```
+
+```{r sessionInfo}
+sessionInfo()
+```
+
+
+#https://www.kaggle.com/hiteshp/head-start-for-data-scientist
+
+```{r}
+# library(alluvial)
+# train <- as.data.frame(train)
+# tit2d <- aggregate( Freq ~ Gender + Match_Status, data=all_data, sum)
+# alluvial( tit2d[,1:2], freq=tit2d$Freq, xw=0.0, alpha=0.8,
+#          gap.width=0.1, col= "steelblue", border="white",
+#          layer = tit2d$Survived != "Yes" )
+# 
+# 
+# tbl_summary <- train %>% group_by(Match_Status, Gender, Age, USMLE_Step_1_Score) %>% dplyr::summarise(N = n()) %>%  
+#   ungroup %>% na.omit
+# 
+# alluvial(tbl_summary[, c(1:4)],
+# 
+#          freq=tbl_summary$N, border=NA,
+# 
+#          col=ifelse(tbl_summary$Match_Status == "Yes", "blue", "gray"),
+# 
+#          cex=0.65,
+# 
+#          ordering = list(
+# 
+#            order(tbl_summary$Survived, tbl_summary$Pclass==1),
+# 
+#            order(tbl_summary$Sex, tbl_summary$Pclass==1),
+# 
+#            NULL,
+# 
+#            NULL))
+```
+
+```{r}
+all_data_for_esquisse <- all_data
+all_data_for_esquisse$Match_Status <- as.factor(all_data_for_esquisse$Match_Status)
+
+esquisse::esquisser(data = all_data_for_esquisse, coerceVars = TRUE)
+
+library(ggplot2)
+
+ggplot(data = all_data_for_esquisse) +
+  aes(x = Match_Status, y = USMLE_Step_1_Score) +
+  geom_boxplot(fill = '#0c4c8a') +
+  theme_minimal() +
+  facet_wrap(vars(Alpha_Omega_Alpha))
+
+ggplot(data = all_data_for_esquisse) +
+  aes(x = Match_Status, y = Count_of_Peer_Reviewed_Book_Chapter) +
+  geom_boxplot(fill = '#0c4c8a') +
+  labs(title = 'Match Status vs. Number of book chapters',
+    x = 'Match Status',
+    y = 'Number of book chapters',
+    subtitle = 'More book chapters meant less of a chance of matching') +
+  theme_minimal()
+
+ggplot(data = all_data_for_esquisse) +
+  aes(x = Match_Status, fill = Year) +
+  geom_bar() +
+  labs(title = 'Applicants by Match Status by Year ',
+    x = 'Match Status',
+    y = 'Number of applicants') +
+  theme_minimal()
+
+ggplot(data = all_data_for_esquisse) +
+  aes(x = Match_Status, y = USMLE_Step_1_Score, fill = Gender, color = Age) +
+  geom_boxplot() +
+  labs(title = 'USMLE Step 1 scores by gender and match status',
+    x = 'Match Status',
+    y = 'USMLE Step 1 Score') +
+  theme_minimal()
+ggplot(data = all_data_for_esquisse) +
+  aes(x = Gender, fill = Match_Status) +
+  geom_bar() +
+  labs(title = 'Match Status by Gender',
+    x = 'Gender',
+    y = 'Number of respondents',
+    subtitle = 'No One has Believed That Being a Female is a Benefit') +
+  theme_minimal()
+
+```
+
+
+
+
