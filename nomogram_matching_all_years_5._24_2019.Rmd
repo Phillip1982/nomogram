@@ -38,14 +38,29 @@ The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Appl
 
 Install and Load packages.  See Session information at the end.  
 ```{r, include=FALSE}
-# update.packages(ask = FALSE, checkBuilt = TRUE)
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+
+install.packages("remotes")
+library(remotes)
+# remotes::install_version("anonymizer", version = "0.2.0", repos = "http://cran.us.r-project.org", dependencies = TRUE, force= TRUE)
+# 
+# packageurl <- "https://cran.r-project.org/src/contrib/Archive/anonymizer/anonymizer_0.1.0.tar.gz"
+# install.packages(packageurl, repos=NULL)
+
+install.packages("anonymizer", type="source")
+
 if(!require(pacman))install.packages("pacman")
 pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse")
 
-#install.packages('knitr', dependencies = TRUE)
-#devtools::install_github("yihui/knitr")
+install.packages('knitr', dependencies = TRUE, type = "source")
+# update all existing packages first
+#update.packages(ask = FALSE, repos = 'https://cran.r-project.org')
+install.packages('knitr', repos = c('https://cran.r-project.org'), depdependencies = TRUE)
+library(knitr)
+
 #devtools::install_github("exploratory-io/exploratory_func")
-#devtools::install_github("rstudio/rmarkdown")
 
 packrat::packrat_mode(on = TRUE)
 ```
@@ -985,7 +1000,7 @@ sessionInfo()
 all_data_for_esquisse <- all_data
 all_data_for_esquisse$Match_Status <- as.factor(all_data_for_esquisse$Match_Status)
 
-esquisse::esquisser(data = all_data_for_esquisse, coerceVars = TRUE)
+#esquisse::esquisser(data = all_data_for_esquisse, coerceVars = TRUE)
 
 library(ggplot2)
 
@@ -1030,6 +1045,9 @@ ggplot(data = all_data_for_esquisse) +
 
 ```
 
+```{r}
+rmarkdown::render()
+```
 
 
 
