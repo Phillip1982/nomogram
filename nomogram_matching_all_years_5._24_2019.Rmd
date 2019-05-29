@@ -52,7 +52,7 @@ options(repos = r)
 install.packages("anonymizer", type="source")
 
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse", "rmarkdown", "stargazer", "tableone", "knitr")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse", "rmarkdown", "stargazer", "tableone", "knitr", "drake", "visNetwork", "rpart")
 
 #install.packages('knitr', dependencies = TRUE, type = "source")
 # update all existing packages first
@@ -82,6 +82,32 @@ all_data <- all_data %>%
   select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
 ```
 
+```{r, echo=FALSE}
+file.exists("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")
+
+create_plot_num <- function(data) {funModeling::plot_num(data, path_out = "~/Dropbox/Nomogram/nomogram/results")} #Export results
+
+create_plot_cross_plot<- function(data) {funModeling::cross_plot(data, input=(colnames(data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results")} #, auto_binning = FALSE, #Export results
+
+create_profiling_num <- function(data) {funModeling::profiling_num(all_data)}
+
+plan <- drake_plan(
+  raw_data = read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds"),
+  data = raw_data %>%
+     select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered"),
+  function(data) {funModeling::plot_num(data, path_out = "~/Dropbox/Nomogram/nomogram/results")},
+  function(data) {funModeling::cross_plot(data, target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results")},
+  
+    quiet = TRUE)
+plan
+
+config <- drake_config(plan)
+vis_drake_graph(config)
+
+drake::make(plan)
+```
+
+
 Bring in the columns that are desired for all_data.  
 ```{r, echo=FALSE, cache=TRUE}
 all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
@@ -90,32 +116,33 @@ colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_
 
 colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_Abstracts"] <- "Count_of_Peer_Reviewed_Articles_Abstracts"
 
+colnames(all_data)[colnames(all_data)=="Medical_Education_or_Training_Interrupted"] <- "Medical_Education_Interrupted"
 
 colnames(all_data)
 ```
 
 Data size and structure
-```{r, results="asis"}
+```{r, results="asis", echo=FALSE}
 plot_str(all_data)
 dim(all_data)
 plot_intro(all_data)
 ```
 
-```{r}
+```{r, echo=FALSE}
 print(str(all_data))
 inspectdf::inspect_types(all_data, show_plot = TRUE)
 ```
 
-```{r}
+```{r, echo=FALSE}
 sum(is.na(all_data))
 ```
 
-```{r, mylatextable, results = "asis"}
+```{r, mylatextable, results = "asis", echo=FALSE}
 #head(all_data)
 stargazer(all_data, type = 'latex')
 ```
 ## Univariate Analysis
-```{r, results='asis'}
+```{r, results='asis', echo=FALSE}
 DataExplorer::plot_bar(all_data)
 #DataExplorer::plot_boxplot(all_data, by = "Match_Status")
 #DataExplorer::plot_histogram(all_data)
@@ -127,11 +154,11 @@ knitr::kable(imb)
 ```
 
 
-```{r, warning=F, message=FALSE, include=TRUE}
+```{r, warning=F, message=FALSE, include=TRUE, echo=FALSE}
 all_data_ggally <- as.data.frame(all_data) 
 ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Age", "white_non_white", "Gender"))
 
-ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" ,  "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha", "USMLE_Step_1_Score"))
+ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" ,  "Medical_Education_Interrupted", "Alpha_Omega_Alpha", "USMLE_Step_1_Score"))
 
 ggpairs(data=all_data_ggally, progress=TRUE, columns = c("Match_Status" , "Medical_Degree", "Visa_Sponsorship_Needed", "Count_of_Peer_Reviewed_Book_Chapter"))
 
@@ -149,7 +176,7 @@ Hmisc::label(all_data$USMLE_Step_1_Score) <- 'USMLE Step 1 Score'
 Hmisc::label(all_data$Gender) <- 'Gender'
 Hmisc::label(all_data$Couples_Match) <- 'Couples Matching'
 #Hmisc::label(all_data$Medical_School_Type) <- 'Medical School Type'
-Hmisc::label(all_data$Medical_Education_or_Training_Interrupted) <- 'Medical School Interrupted'
+Hmisc::label(all_data$Medical_Education_Interrupted) <- 'Medical School Interrupted'
 #Hmisc::label(all_data$Misdemeanor_Conviction) <- 'Misdemeanor Conviction'
 Hmisc::label(all_data$US_or_Canadian_Applicant) <- 'US or Canadian Applicant'
 Hmisc::label(all_data$Military_Service_Obligation) <- 'Military Service Obligation'
@@ -157,8 +184,8 @@ Hmisc::label(all_data$Count_of_Oral_Presentation) <- 'Count of Oral Presentation
 Hmisc::label(all_data$Count_of_Peer_Reviewed_Book_Chapter) <- 'Count of Peer-Reviewed Book Chapters'
 Hmisc::label(all_data$Count_of_Poster_Presentation) <- 'Count of Poster Presentations'
 Hmisc::label(all_data$white_non_white) <- 'Race' 
-Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts) <- 'Count of Peer-Reviewed Journal Articles'
-Hmisc::label(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published) <-'Count of Peer-Reviewed Research Not Published'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Articles_Abstracts) <- 'Count of Journal Articles'
+Hmisc::label(all_data$Count_of_Peer_Reviewed_Other_than_Published) <-'Count of Research Not Published'
 Hmisc::label(all_data$Match_Status) <- 'Matching Status'
 ```
 
@@ -168,7 +195,7 @@ I set the cutpoints based on nothing really.I like this better than the base sum
 dd <- rms::datadist(all_data)
 options(datadist='dd')
 
-s <- summary(Match_Status ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_or_Training_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published, 0:3), data = all_data)
+s <- summary(Match_Status ~ cut2(Age, 30:30) + Gender + Alpha_Omega_Alpha + cut2(USMLE_Step_1_Score, 245:245) + Couples_Match + Medical_Education_Interrupted + US_or_Canadian_Applicant + Military_Service_Obligation + Count_of_Oral_Presentation + cut2(Count_of_Peer_Reviewed_Book_Chapter, 0:3) + cut2(Count_of_Poster_Presentation, 0:3) + white_non_white + cut2(Count_of_Peer_Reviewed_Articles_Abstracts, 0:3) + cut2(Count_of_Peer_Reviewed_Other_than_Published, 0:3), data = all_data)
 s
 ```
 
@@ -188,6 +215,22 @@ stargazer::stargazer(all_data[1:4, ], output='latex', summary=FALSE, rownames=FA
 plot(s, main= "Univariate Analysis", cex.sub = 0.5, cex.axis=0.2, cex.main=0.3, cex.lab=0.4, xlim=c(0,0.99), subtitles = FALSE, xlab = "Chance of Matching into OBGYN Residency")
 ```
 
+```{r rpart EDA}
+t.model <- rpart((Match_Status~.), data = train)
+t.model$variable.importance
+```
+
+The simple tree was plotted below. 
+#MAYBE BIN ALL NUMERIC VARIABLES TO USE IN R PLOT
+
+```{r fancyR plot rpart EDA, include=TRUE}
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+# plot 
+fancyRpartPlot(t.model, caption = NULL)
+```
+
 ## Normality testing in R
 Should we use means or medians in table 1? 
 The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numeric variables. There is kurtosis for the Step 1 score data.  Therefore only use medians in table 1 and I will stick with non-parametric tests throughout. There is skew in age.   
@@ -195,26 +238,26 @@ The D'Agostino tests for skewness and the Anscombe tests for kurtosis with numer
 #Examination of skewness and kurtosis for numeric values, Zhang book page 65
 hist(all_data$Age)  #There is skew in age
 ```
-```{r}
+```{r, echo=FALSE}
 hist(all_data$USMLE_Step_1_Score) #No skew with USMLE
 moments::agostino.test(all_data$Age) #D'Agostino skewness test is positive for skewness
 moments::anscombe.test(all_data$USMLE_Step_1_Score)  #There is kurtosis for the Step 1 score data.  
 #Therefore only use medians.
 ```
 Quantile-Quantile plot is a way to visualize the deviation from a specific probability distribution. After analyzing these plots, it is often beneficial to apply mathematical transformation (such as log) for models like linear regression. 
-```{r}
+```{r, echo=FALSE}
 DataExplorer::plot_qq(all_data)
 ```
 
 Visual inspection is usually unreliable. It’s possible to use a significance test comparing the sample distribution to a normal one in order to ascertain whether data show or not a serious deviation from normality.There are several methods for normality test such as Kolmogorov-Smirnov (K-S) normality test and Shapiro-Wilk’s test.
 
 The null hypothesis of these tests is that “sample distribution is normal”. If the test is significant, the distribution is non-normal.  From the output, the p-value less than 0.05 implying that the distribution of the data are  significantly different from normal distribution. In other words, we can not assume the normality.
-```{r}
+```{r, echo=FALSE}
 shapiro.test(all_data$Age)
 shapiro.test(all_data$Count_of_Oral_Presentation)
 shapiro.test(all_data$Count_of_Poster_Presentation)
 shapiro.test(all_data$Count_of_Peer_Reviewed_Book_Chapter)
-shapiro.test(all_data$Count_of_Peer_Reviewed_Journal_Articles_Abstracts)
+shapiro.test(all_data$Count_of_Peer_Reviewed_Articles_Abstracts)
 shapiro.test(all_data$USMLE_Step_1_Score)
 ```
 
@@ -242,7 +285,7 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       #Expected_Visa_Status_Dichotomized + 
                                       US_or_Canadian_Applicant + 
                                       #Medical_School_Type + 
-                                      Medical_Education_or_Training_Interrupted + 
+                                      Medical_Education_Interrupted + 
                                       #Misdemeanor_Conviction + 
                                       Alpha_Omega_Alpha + 
                                       #Gold_Humanism_Honor_Society + 
@@ -251,9 +294,9 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       Military_Service_Obligation + 
                                       Count_of_Poster_Presentation + 
                                       Count_of_Oral_Presentation + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Articles_Abstracts + 
                                       Count_of_Peer_Reviewed_Book_Chapter + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Other_than_Published + 
                                       Count_of_Peer_Reviewed_Online_Publication + 
                                       Visa_Sponsorship_Needed +
                                       Medical_Degree,
@@ -273,13 +316,12 @@ train <- train %>% select(-"Year")
 ```
 
 Check Proportions of Matched
-```{r, results="asis"}
+```{r, results="asis", echo=FALSE}
 levels(train$Match_Status) <- c("NoMatch", "Matched")
 levels(test$Match_Status) <- c("NoMatch", "Matched")
 
 # Examine the proportions of the Match_Status class lable across the datasets.
 crude_summary <- prop.table(table(all_data$Match_Status))       #Original data set proportion 
-
 prop.table(table(train$Match_Status)) #Train data set proportion
 
 prop.table(table(test$Match_Status))  #Test data set proportion
@@ -287,7 +329,7 @@ prop.table(table(test$Match_Status))  #Test data set proportion
 kable(crude_summary, caption="2x2 Contingency Table on Matching for all_data", format="markdown")
 ```
 ##Compare the datasets of train and test
-```{r, results="asis", include=FALSE}
+```{r, results="asis", include=FALSE, echo=FALSE}
 summary(arsenal::comparedf(train, test))
 ```
 
@@ -306,7 +348,7 @@ train_test_all_data <- arsenal::tableby(interaction(Match_Status, dataset) ~
                                       #Expected_Visa_Status_Dichotomized + 
                                       US_or_Canadian_Applicant + 
                                       #Medical_School_Type + 
-                                      Medical_Education_or_Training_Interrupted + 
+                                      Medical_Education_Interrupted + 
                                       #Misdemeanor_Conviction + 
                                       Alpha_Omega_Alpha + 
                                       #Gold_Humanism_Honor_Society + 
@@ -315,9 +357,9 @@ train_test_all_data <- arsenal::tableby(interaction(Match_Status, dataset) ~
                                       Military_Service_Obligation + 
                                       Count_of_Poster_Presentation + 
                                       Count_of_Oral_Presentation + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Articles_Abstracts + 
                                       Count_of_Peer_Reviewed_Book_Chapter + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Other_than_Published + 
                                       Count_of_Peer_Reviewed_Online_Publication + 
                                       Visa_Sponsorship_Needed +
                                       Medical_Degree,
@@ -357,36 +399,36 @@ Hmisc::rcspline.plot(x = all_data$Count_of_Oral_Presentation, y = all_data$Match
 
 # Step 4:  Build a Logistic Regression Model
 Create a Kitchen Sink model with all factors first. This is essentially a screening model with all variables. I relaxed the cubic splines with the guidance from above.  
-```{r}
+```{r, echo=FALSE}
 d <- datadist(train)
 options(datadist = "d")
 
-kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
+kitchen.sink <- lrm(Match_Status ~ white_non_white +  rcs(Age, 5) + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + rcs(USMLE_Step_1_Score, 4) + rcs(Count_of_Poster_Presentation,3) +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree, data = train, x = T, y = T)
 
 kitchen.sink
 ```
 
 Are there predictor interactions?
 ```{r, echo=TRUE}
-lm.fit2 <- lm(Match_Status ~ (white_non_white + Age + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_or_Training_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Journal_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree)^2, data = all_data)
+lm.fit2 <- lm(Match_Status ~ (white_non_white + Age + Gender +  Couples_Match + US_or_Canadian_Applicant +  Medical_Education_Interrupted + Alpha_Omega_Alpha +  Military_Service_Obligation + USMLE_Step_1_Score + Count_of_Poster_Presentation +  Count_of_Oral_Presentation + Count_of_Peer_Reviewed_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + Count_of_Peer_Reviewed_Other_than_Published + Count_of_Peer_Reviewed_Online_Publication + Visa_Sponsorship_Needed + Medical_Degree)^2, data = all_data)
 ```
 
-```{r, include=FALSE}
+```{r, include=FALSE, echo=FALSE}
 lm.fit3 <- anova(lm.fit2)
 ```
 
-```{r}
+```{r, echo=FALSE}
 lm.fit3
 ```
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 #lrm.with.lasso.variables$stats  #Shows the C-statistic and the Brier score.  
 kitchen.sink.model.stats <- as.data.frame(kitchen.sink$stats)
 knitr::kable(kitchen.sink.model.stats, caption = "Performance statistics of the Kitchen Sink Model Using All Variables", digits=2)
 ```
 ## Check for collinearity
 ```{r}
-car::vif(kitchen.sink)
+car::vif(kitchen.sink, echo=FALSE)
 ```
 
 
@@ -402,23 +444,23 @@ rms::fastbw(kitchen.sink, rule = "aic")
 ```
 
 ## Correlation overview
-In this kind of plot we want to look for the bright, large circles which immediately show the strong correlations (size and shading depends on the absolute values of the coefficients; color depends on direction).  This shows whether two features are connected so that one changes with a predictable trend if you change the other. The closer this coefficient is to zero the weaker is the correlation. Anything that you would have to squint to see is usually not worth seeing!  
+In this kind of plot we want to look for the bright, large circles which immediately show the strong correlations (size and shading depends on the absolute values of the coefficients; color depends on direction).  This shows whether two features are connected so that one changes with a predictable trend if you change the other. The closer this coefficient is to zero the weaker is the correlation. Anything that you would have to squint to see is usually not worth seeing!  CAN ONLY CORRELATE CONTINOUS VARIABLES.  
 
 Match_Status is correlated with US_or_Canadian_applicant, USMLE_Step_1, Visa_Sponsorship_Needed, and White_non_white.  
-```{r, warning= FALSE, message=FALSE}
+```{r, warning= FALSE, message=FALSE, echo=FALSE}
 set.seed(0)
-train_corrleation <- train %>% 
-  mutate(Gender = fct_recode(Gender,"0" = "Male", "1" = "Female")) %>%
-  mutate(Couples_Match = fct_recode(Couples_Match,"0" = "No", "1" = "Yes")) %>%
-  mutate(US_or_Canadian_Applicant = fct_recode(US_or_Canadian_Applicant,"0" = "No", "1" = "Yes")) %>%
-  mutate(Medical_Education_or_Training_Interrupted = fct_recode(Medical_Education_or_Training_Interrupted,"0" = "No", "1" = "Elections_Senior_Year", "2" = "Yes")) %>%
+train_corrleation <- train %>% select(Age, USMLE_Step_1_Score, Count_of_Poster_Presentation, Count_of_Oral_Presentation, Count_of_Peer_Reviewed_Articles_Abstracts, Count_of_Peer_Reviewed_Book_Chapter, Count_of_Peer_Reviewed_Other_than_Published, Count_of_Peer_Reviewed_Online_Publication) %>%
+  #mutate(Gender = fct_recode(Gender,"0" = "Male", "1" = "Female")) %>%
+  #mutate(Couples_Match = fct_recode(Couples_Match,"0" = "No", "1" = "Yes")) %>%
+  #mutate(US_or_Canadian_Applicant = fct_recode(US_or_Canadian_Applicant,"0" = "No", "1" = "Yes")) %>%
+  #mutate(Medical_Education_Interrupted = fct_recode(Medical_Education_Interrupted,"0" = "No", "1" = "Elections_Senior_Year", "2" = "Yes")) %>%
   mutate_all(as.integer)%>%
   stats::cor(use="pairwise.complete.obs") %>%
   corrplot::corrplot(type="lower", diag=FALSE, order = "hclust", tl.cex = 0.5, tl.col = "black", sig.level = "0.01", insig = "blank", pch = TRUE)
 ```
 
 p-value associated with the null hypothesis of 0 correlation, small values indicate evidence that the true correlation is not equal to 0.
-```{r}
+```{r, echo=FALSE}
 inspect_cor(all_data, show_plot = FALSE, alpha = 0.05)
 ```
 
@@ -840,7 +882,7 @@ who presents as a
 from a 
 `r sample$Medical_Degree[1]` 
 medical school.  This medical student did 
-`r sample$Medical_Education_or_Training_Interrupted[1]` 
+`r sample$Medical_Education_Interrupted[1]` 
 have their medical education interrupted for any reason.  
 
 On USMLE Step 1 the student scored
@@ -856,7 +898,7 @@ oral presentations from the podium.
 `r sample$Count_of_Poster_Presentation[1]` 
 poster presentations.
 
-`r sample$Count_of_Peer_Reviewed_Journal_Articles_Abstracts[1]`
+`r sample$Count_of_Peer_Reviewed_Articles_Abstracts[1]`
 peer-reviewed journal articles.  
 
 `r sample$Count_of_Peer_Reviewed_Book_Chapter[1]` 
@@ -874,14 +916,17 @@ a need for a couples match.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #funModeling::df_status(all_data)
-funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
+create_plot_num(all_data)
+#funModeling::plot_num(all_data, path_out = "~/Dropbox/Nomogram/nomogram/results") #Export results
 
 #Summary stats of the numerical data showing means, medians, skew
-funModeling::profiling_num(all_data)
+create_profiling_num(all_data)
+#funModeling::profiling_num(all_data)
 
 #Shows the variable frequency charted by matching status
 
-funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
+create_plot_cross_plot(all_data)
+#funModeling::cross_plot(data=all_data, input=(colnames(all_data)), target="Match_Status", path_out = "~/Dropbox/Nomogram/nomogram/results") #, auto_binning = FALSE, #Export results
 ```
 
 # Appendix, Exploratory Data Analysis
@@ -898,7 +943,7 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       #Expected_Visa_Status_Dichotomized + 
                                       US_or_Canadian_Applicant + 
                                       #Medical_School_Type + 
-                                      Medical_Education_or_Training_Interrupted + 
+                                      Medical_Education_Interrupted + 
                                       #Misdemeanor_Conviction + 
                                       Alpha_Omega_Alpha + 
                                       #Gold_Humanism_Honor_Society + 
@@ -907,9 +952,9 @@ table1_all_data <- arsenal::tableby(Match_Status ~
                                       Military_Service_Obligation + 
                                       Count_of_Poster_Presentation + 
                                       Count_of_Oral_Presentation + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts + 
+                                      Count_of_Peer_Reviewed_Articles_Abstracts + 
                                       Count_of_Peer_Reviewed_Book_Chapter + 
-                                      Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published + 
+                                      Count_of_Peer_Reviewed_Other_than_Published + 
                                       Count_of_Peer_Reviewed_Online_Publication + 
                                       Visa_Sponsorship_Needed +
                                       Medical_Degree,
