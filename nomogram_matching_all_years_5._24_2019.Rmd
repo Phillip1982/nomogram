@@ -7,7 +7,7 @@ output:
     latex_engine: xelatex
     df_print: kable
     toc: true
-    pandoc_args: ["--wrap=none", "--top-level-division=chapter"]
+    #pandoc_args: ["--wrap=none", "--top-level-division=chapter"]
   word_document: default
   html_document:
     toc: true
@@ -17,17 +17,17 @@ output:
 fontsize: 12pt
 geometry: margin=1in
 ---
-```{r, include=FALSE}
+```{r, include=FALSE, echo=FALSE}
 options(tinytex.verbose = TRUE)
 ```
 
-```{r, echo=FALSE, include=FALSE}
+```{r r_global_options, echo=FALSE, include=FALSE}
 library(knitr)
 opts_knit$set(root.dir = normalizePath("../"), 
-              fig.width=8, fig.height=5, 
-               echo=TRUE, 
+              fig.width=8, fig.height=6, 
+               echo=FALSE, include=FALSE,
                warning=FALSE, message=FALSE, 
-               cache=TRUE)
+               cache=TRUE, tidy=TRUE, comment="", tidy.opts=list(width.cutoff=80))
 options(scipen = 6)
 ```
 # Step 1: Load Cleaned Data
@@ -37,13 +37,13 @@ Introduction
 The data set of years 2015, 2016, 2017, and 2018 at University of Colorado. Applicants who were in the SOAP and applied to the preliminary spot were determined to be unmatched.  The data is contained in a data frame called all_data.  
 
 Install and Load packages.  See Session information at the end.  
-```{r, include=FALSE}
+```{r, include=FALSE, echo=FALSE}
 r = getOption("repos")
 r["CRAN"] = "http://cran.us.r-project.org"
 options(repos = r)
 
-install.packages("remotes")
-library(remotes)
+#install.packages("remotes")
+#library(remotes)
 # remotes::install_version("anonymizer", version = "0.2.0", repos = "http://cran.us.r-project.org", dependencies = TRUE, force= TRUE)
 # 
 # packageurl <- "https://cran.r-project.org/src/contrib/Archive/anonymizer/anonymizer_0.1.0.tar.gz"
@@ -52,12 +52,12 @@ library(remotes)
 install.packages("anonymizer", type="source")
 
 if(!require(pacman))install.packages("pacman")
-pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse", "rmarkdown")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse", "rmarkdown", "stargazer", "tableone", "knitr")
 
-install.packages('knitr', dependencies = TRUE, type = "source")
+#install.packages('knitr', dependencies = TRUE, type = "source")
 # update all existing packages first
 #update.packages(ask = FALSE, repos = 'https://cran.r-project.org')
-install.packages('knitr', repos = c('https://cran.r-project.org'), depdependencies = TRUE)
+# install.packages('knitr', repos = c('https://cran.r-project.org'), depdependencies = TRUE)
 library(knitr)
 
 #devtools::install_github("exploratory-io/exploratory_func")
@@ -65,13 +65,8 @@ library(knitr)
 packrat::packrat_mode(on = TRUE)
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 set.seed(123456)
-```
-
-Set working directory to files present in the Dropbox folder.
-```{r files, echo=FALSE}
-#setwd("~/Dropbox/Nomogram/nomogram")  
 ```
 
 # Step 2:  Create a dataframe of independent and dependent variables
@@ -79,6 +74,9 @@ Download cleaned data from Dropbox.  The data was cleaned in exploratory.io befo
 ```{r pressure, echo=FALSE, include=FALSE}
 #download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
 all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds")  #Bring in years 2015, 2016, 2017, and 2018 data
+all_data<- upData(all_data)
+#all_data <- Hmisc::cleanup.import(all_data)
+
 dplyr::glimpse(all_data)
 all_data <- all_data %>%
   select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered")
@@ -87,6 +85,13 @@ all_data <- all_data %>%
 Bring in the columns that are desired for all_data.  
 ```{r, echo=FALSE, cache=TRUE}
 all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
+
+colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published"] <- "Count_of_Peer_Reviewed_Other_than_Published"
+
+colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_Abstracts"] <- "Count_of_Peer_Reviewed_Articles_Abstracts"
+
+
+colnames(all_data)
 ```
 
 Data size and structure
@@ -97,7 +102,7 @@ plot_intro(all_data)
 ```
 
 ```{r}
-str(all_data)
+print(str(all_data))
 inspectdf::inspect_types(all_data, show_plot = TRUE)
 ```
 
@@ -105,9 +110,9 @@ inspectdf::inspect_types(all_data, show_plot = TRUE)
 sum(is.na(all_data))
 ```
 
-```{r}
-head(all_data)
-#DataExplorer::create_report(all_data)  #Error: pandoc document conversion failed with error 99
+```{r, mylatextable, results = "asis"}
+#head(all_data)
+stargazer(all_data, type = 'latex')
 ```
 ## Univariate Analysis
 ```{r, results='asis'}
@@ -173,6 +178,10 @@ all_data$Match_Status <- as.numeric(all_data$Match_Status)
 all_data$Match_Status
 all_data$Match_Status <- (all_data$Match_Status - 1)
 all_data$Match_Status #Outcome must be numeric
+```
+
+```{r, include = TRUE, results='asis', echo=FALSE}
+stargazer::stargazer(all_data[1:4, ], output='latex', summary=FALSE, rownames=FALSE, header = TRUE)
 ```
 
 ```{r, echo=FALSE, warning= FALSE, message=FALSE, include=FALSE, fig.width=7, fig.asp=1}
