@@ -274,21 +274,18 @@ A logistic regression model using backwards variable selection was fit. The summ
 
 ```{r Backwards LR model, message=FALSE, warning=FALSE, cache=TRUE}
 full.model <- glm(as.factor(Match_Status) ~ 
-                  white_non_white + Age + 
+                  white_non_white + woe.Age.binned + 
                          Gender +  Couples_Match +
                          US_or_Canadian_Applicant + Medical_Education_Interrupted + 
                          Alpha_Omega_Alpha +
-                         Military_Service_Obligation + USMLE_Step_1_Score +
-                         Count_of_Poster_Presentation + Count_of_Oral_Presentation +
-                         Count_of_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + 
-                         Count_of_Other_than_Published + Count_of_Online_Publications + 
-                         Visa_Sponsorship_Needed + Medical_Degree  + char_freq_dollar.binned + 
-                    woe.char_freq_dollar.binned + word_freq_remove.binned + 
-                    woe.word_freq_remove.binned + char_freq_exclamation.binned + 
-                    woe.char_freq_exclamation.binned + word_freq_hp.binned + 
-                    woe.word_freq_hp.binned + capital_run_length_average.binned + 
-                    woe.capital_run_length_average.binned
-                  , 
+                         Military_Service_Obligation + 
+                         Visa_Sponsorship_Needed + Medical_Degree  + 
+                    woe.USMLE_Step_1_Score.binned + woe.Count_of_Poster_Presentation.binned + 
+                    woe.Count_of_Articles_Abstracts.binned + 
+                    woe.Count_of_Oral_Presentation.binned + 
+                    woe.Count_of_Other_than_Published.binned + 
+                    woe.Count_of_Peer_Reviewed_Book_Chapter.binned + 
+                    woe.Count_of_Online_Publications.binned, 
                   data = train.df.binned, family = binomial)
  backwards = step(full.model) # Backwards selection is the default
 ```
