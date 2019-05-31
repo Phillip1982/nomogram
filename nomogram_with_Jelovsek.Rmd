@@ -7,11 +7,7 @@ output:
 ---
 
 INTRODUCTION
-Unsolicited bulk email, commonly referred to as spam, has been steadily increasing since the 1990's. (Cranor and LaMacchia ,1998) Large quantities of spam are time-consuming or difficult for the recepient and frequently contain explicit sexual language and attached photographs that many recipients find offensive. Internet Service Providers (ISPs) are on the receiving end of these complaints and some ISPs have even sought legal relief.(Cranor and LaMacchia ,1998) 
 
-Spam is pervasive largely due to two reasons: bulk email is inexpensive to send and pseudonyms are inexpensive to obtain. Technical solutions include filtering solutions, counter-attack solutions, opt-out lists, channels, payments, referral networks and fee restructuring. 
-
-A quick glance at the mail message is usually enough for a human to decide whether an email is spam or not. However, an automated procedure to classify and eliminate these unwanted messages would save time and irritation of having to sort through good and bad mail. The objective of this assignment was to develop and validate a model to classify a mail message as spam (yes or no). A pre-packaged .RData object was available for this assignment from the SPAM E-mail Database provided by Mark Hopkins, Erik Reeber, George Forman, Jaap Suermondt of Hewlett-Packard Labs developed June-July 1999. 
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=8, fig.height=6, include=FALSE,echo=FALSE, warning=FALSE, message=FALSE, tidy = TRUE, comment="")
@@ -52,23 +48,9 @@ colnames(all_data)
 
 ## 1) Data Quality Check
 
-The original data description was provided by the spambase documentation as including 4601 observations (1813 Spam = 39.4%) and 58 attributes (57 continuous, 1 nominal class label). The imported data was verified as having 4601 observations but contained 61 variables. Three additional variables were added for this assignment indicating a random uniform assignment, train, and test indicators. There were no missing data. The train set included 3439 observations and the test set included 1162 observations. 
+A summary of the x variables are listed below:
 
-A summary of the 58 variables are listed below:
-
-1. 48 of the variables were a continuous real number [0,100] and contained attributes a type of word frequency (ie. 100 * (number of times the WORD appears in the e-mail) / total number of words in e-mail.)
-
-2. 6 variables were continuous real number [0,100] attributes of type char_freq_CHAR (i.e. 100 * (number of CHAR occurences) / total characters in e-mail).
-
-3. 1 continuous real number [1,...] attribute of type capital_run_length_average (ie. average length of uninterrupted sequences of capital letters).
-
-4. 1 continuous integer [1,...] attribute of type capital_run_length_longest (i.e.length of longest uninterrupted sequence of capital letters).
-
-5. 1 continuous integer [1,...] attribute of type capital_run_length_total (i.e. sum of length of uninterrupted sequences of capital letters total number of capital letters in the e-mail.
-
-6. 1 nominal {0,1} class attribute of type spam. Denotes whether the e-mail was considered spam (1) or not (0), (i.e. unsolicited commercial e-mail).
-
-Variables 1:54 were checked within range of 0,100 as defined. 1813 (0.394) observations were marked as spam and 2788 (0.606) observations were marked as not spam in the total dataset. This was consistent with the spambased documentation.
+1. x of the variables were a continuous real number [0,100] and contained attributes a type of word frequency (ie. 100 * (number of times the WORD appears in the e-mail) / total number of words in e-mail.)
 
 ```{r structure of data}
 cat("\n","----- Initial Structure of data frame -----","\n")
@@ -108,10 +90,10 @@ train <- train %>% select(-"Year")
 
 ## 2) Exploratory data analysis
 
-After the data check was completed, an exploratory data analysis (EDA) was conducted to look for interesting relationships among the variables. Histograms were used to visualize distributions among predictors. Since the assignment was a classification problem, relationships between predictors and the dichotomous outcome were also performed. Distributions of all variables were skewed right. Examples of histograms of four variables: word_freq_3d, word_freq_address, word_freq_all and word_freq_make are demonstrated below.
+After the data check was completed, an exploratory data analysis (EDA) was conducted to look for interesting relationships among the variables. Histograms were used to visualize distributions among predictors. Since the assignment was a classification problem, relationships between predictors and the dichotomous outcome were also performed. Distributions of all variables were skewed right. Examples of histograms of eight variables: age, USMLE Step 1 scores, Count of articles and abstracts, count of oral presentations, count of poster presentations, Count of online pubications, count of non-published publications, count of peer-reviewed book chapters,  are demonstrated below.
 
 ```{r, include = TRUE, fig.width=8, fig.height=3}
-plot_histogram(train[,2])
+plot_histogram(train[,2]) #age
 plot_histogram(train[,9])
 plot_histogram(train[,10:12])
 plot_histogram(train[,13:15])
