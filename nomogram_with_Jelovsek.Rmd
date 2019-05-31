@@ -51,13 +51,13 @@ colnames(all_data)
 
 ## 1) Data Quality Check of `all_data`
 
-A summary of the x variables are listed below:
+A summary of the 19 variables are listed below:
 
-1. 11 of the variables were a factor.  All factors had two levels except for Alpha_Omega_Alpha had three levels.  
+1. Eleven of the variables were a factor.  All factors had two levels except for Alpha_Omega_Alpha had three levels.  The target variable is `all_data$Match_Status`.  
 
-2.  1 of the variables was a number.  Age was calculated as a number.  
+2. One of the variables was a number.  Age was calculated as a number.  
 
-3.  2 of the variables were character values.   
+3. Seven of the variables were integers.   
 
 ```{r structure of data}
 cat("\n","----- Initial Structure of data frame -----","\n")
@@ -67,7 +67,7 @@ print(str(all_data))
 
 ```{r structure data 2}
 all_data <- Hmisc::upData(all_data)
-all_data <- Hmisc::cleanup.import(all_data)
+all_data <- Hmisc::cleanup.import(all_data) #Not working
 str(all_data)
 ```
 
@@ -87,9 +87,9 @@ stargazer::stargazer(all_data, header=FALSE, title = "Descriptive Statistics of 
 
 
 ```{r, train vs test, warning=FALSE, echo=TRUE, message=FALSE}
-train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
+train <- filter(all_data, Year != "2018")  #Train on years 2015, 2016, 2017
 nrow(train) 
-test <- filter(all_data, Year == 2018) #Test on 2018 data
+test <- filter(all_data, Year == "2018") #Test on 2018 data
 nrow(test)
 test <- test %>% select(-"Year")
 train <- train %>% select(-"Year")
@@ -97,19 +97,19 @@ train <- train %>% select(-"Year")
 
 ## 2) Exploratory data analysis
 
-After the data check was completed, an exploratory data analysis (EDA) was conducted to look for interesting relationships among the variables. Histograms were used to visualize distributions among predictors. Since the assignment was a classification problem, relationships between predictors and the dichotomous outcome were also performed. Distributions of all variables were skewed right. Examples of histograms of eight variables: age, USMLE Step 1 scores, Count of articles and abstracts, count of oral presentations, count of poster presentations, Count of online pubications, count of non-published publications, count of peer-reviewed book chapters,  are demonstrated below.
+After the data check was completed, an exploratory data analysis (EDA) was conducted to look for interesting relationships among the variables. Histograms were used to visualize distributions among predictors. Since the assignment was a classification problem, relationships between predictors and the dichotomous outcome were also performed. Distributions of all variables were skewed right. Examples of histograms of seven variables: age, Count of articles and abstracts, count of oral presentations, count of poster presentations, Count of online pubications, count of non-published publications, count of peer-reviewed book chapters,  are demonstrated below.
 
 ```{r, include = TRUE, fig.width=8, fig.height=3}
 plot_histogram(train[,2]) #age
-plot_histogram(train[,9])
 plot_histogram(train[,10:12])
 plot_histogram(train[,13:15])
 ```
 
-This allowed for measuring the associations between continuous predictors using a matrix with correlation coefficients. The scatterplot matrix of a sample of predictors below demonstrated some associations. For example, char_freq_$ was associated with char_freq_! and capital_run_length_total, capital_run_length_average and capital_run_length_longest were also associated with one another.
+This allowed for measuring the associations between continuous predictors using a matrix with correlation coefficients. The scatterplot matrix of a sample of predictors below demonstrated some associations. CAN WE INCLUDE ONLY CONTINUOUS VARIABLES?
 
 ```{r, include = TRUE, fig.width=8, fig.height=4}
-#psych::pairs.panels(train.df[50:57], bg=c("red","blue")[as.factor(train.df$Match_Status)], pch=21, jiggle = TRUE)
+train.df <- train
+psych::pairs.panels(train.df[, c(9:15)], bg=c("red","blue")[as.factor(train.df$Match_Status)], pch=21, jiggle = TRUE)
 ```
 
 Since the predictors were highly skewed, binning was also explored. This facilitated visualizing associations between binned variables and the outcome using contingency plots. Supervised Weight of Evidence (WOE) binning of numeric variables were explored using the woeBinning package. Fine and coarse classing that merged granular classes and levels step by step was performed. Bins were merged and respectively split based on similar weight of evidence (WOE) values and stop via an information value (IV) based criteria. The figure below demonstrated the top five predictors ranked by information value during binning.
