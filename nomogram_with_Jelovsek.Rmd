@@ -272,6 +272,8 @@ All models were fit using the data labeled train and validated using the data la
 
 A logistic regression model using backwards variable selection was fit. The summary of the model coefficients for the final model is presented in Table 3. Table 4 demonstrates the confusion matrix for the in-sample performance of the model and Table 5 demonstrates the confusion matrix? or AUC? for the out-of-sample performance.
 
+
+#I'M NOT SURE IF I INCLUDED ALL THE RIGHT VARIABLES
 ```{r Backwards LR model, message=FALSE, warning=FALSE, cache=TRUE}
 full.model <- glm(as.factor(Match_Status) ~ 
                   white_non_white + woe.Age.binned + 
@@ -393,6 +395,8 @@ kable(dt, "latex", booktabs = T, caption = "Confusion matrix of CART on train se
 
 ```
 
+
+NOT WORKING BECAUSE TEST HAS NOT BEEN WOE BINNED
 ```{r cart test accuracy}
 test.cart <- predict(cart.model, test.df.binned)
 #cat("\n","----- Performance of cart on test set -----","\n")
@@ -457,7 +461,7 @@ all.medians <- apply(data.numcols, 2, median)
 all.means <- colMeans(data.numcols)
 ```
 
-
+I DO NOT KNOW HOW TO MAKE THIS WORK.  
 ```{r SVM model one, eval=FALSE, include=FALSE}
 # Fit the SVM using C value of 1
 require(e1071)
