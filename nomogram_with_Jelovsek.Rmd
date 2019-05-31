@@ -1,0 +1,781 @@
+---
+title: "DRAFT:  A model to predict chances of matching into Obstetrics and Gynecology Residency"
+author: "Tyler M. Muffly, MD"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  pdf_document: default
+---
+
+INTRODUCTION
+Unsolicited bulk email, commonly referred to as spam, has been steadily increasing since the 1990's. (Cranor and LaMacchia ,1998) Large quantities of spam are time-consuming or difficult for the recepient and frequently contain explicit sexual language and attached photographs that many recipients find offensive. Internet Service Providers (ISPs) are on the receiving end of these complaints and some ISPs have even sought legal relief.(Cranor and LaMacchia ,1998) 
+
+Spam is pervasive largely due to two reasons: bulk email is inexpensive to send and pseudonyms are inexpensive to obtain. Technical solutions include filtering solutions, counter-attack solutions, opt-out lists, channels, payments, referral networks and fee restructuring. 
+
+A quick glance at the mail message is usually enough for a human to decide whether an email is spam or not. However, an automated procedure to classify and eliminate these unwanted messages would save time and irritation of having to sort through good and bad mail. The objective of this assignment was to develop and validate a model to classify a mail message as spam (yes or no). A pre-packaged .RData object was available for this assignment from the SPAM E-mail Database provided by Mark Hopkins, Erik Reeber, George Forman, Jaap Suermondt of Hewlett-Packard Labs developed June-July 1999. 
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=6, include=FALSE,echo=FALSE, warning=FALSE, message=FALSE, tidy = TRUE, comment="")
+options(tinytex.verbose = TRUE)
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+```
+
+```{r, include=FALSE, echo=FALSE}
+install.packages("anonymizer", type="source")
+
+if(!require(pacman))install.packages("pacman")
+pacman::p_load('caret', 'readxl', 'XML', 'reshape2', 'devtools', 'purrr', 'readr', 'ggplot2', 'dplyr', 'magick', 'janitor', 'lubridate', 'hms', 'tidyr', 'stringr', 'readr', 'openxlsx', 'forcats', 'RcppRoll', 'tibble', 'bit64', 'munsell', 'scales', 'rgdal', 'tidyverse', "foreach", "PASWR", "rms", "pROC", "ROCR", "nnet", "janitor", "packrat", "DynNom", "export", "caTools", "mlbench", "randomForest", "ipred", "xgboost", "Metrics", "RANN", "AppliedPredictiveModeling", "nomogramEx", "shiny", "earth", "fastAdaboost", "Boruta", "glmnet", "ggforce", "tidylog", "InformationValue", "pscl", "scoring", "DescTools", "gbm", "Hmisc", "arsenal", "pander", "moments", "leaps", "MatchIt", "car", "mice", "rpart", "beepr", "fansi", "utf8", "zoom", "lmtest", "ResourceSelection", "rpart", "rmarkdown", "rattle", "rmda", "funModeling", "DynNom", "tinytex", "caretEnsemble", "broom", "Rmisc", "corrplot", "GGally", "alluvial", "progress", "car", "perturb", "vctrs", "highr", "labeling", "DataExplorer", "rsconnect", "inspectdf", "ggpubr", "esquisse", "rmarkdown", "stargazer", "tableone", "knitr", "drake", "visNetwork", "rpart", "woeBinning", "OneR", "rattle", "rpart.plot", "RColorBrewer", "randomForest", "kableExtra", "kernlab")
+
+packrat::packrat_mode(on = TRUE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+# read in data
+# download.file("https://www.dropbox.com/s/hxkxdmmbd5927j3/all_years_reorder_cols_84.rds?raw=1",destfile=paste0("all_years_mutate_83.rds"), method = "auto", cacheOK = TRUE)
+all_data <- read_rds("~/Dropbox/Nomogram/nomogram/data/all_years_reorder_cols_84.rds") %>%
+  select(-"Gold_Humanism_Honor_Society", -"Sigma_Sigma_Phi", -"Misdemeanor_Conviction", -"Malpractice_Cases_Pending", -"Match_Status_Dichot", -"Citizenship", -"BLS", -"Positions_offered") #Bring in years 2015, 2016, 2017, and 2018 data
+
+all_data <- all_data[c('white_non_white', 'Age',  'Year', 'Gender', 'Couples_Match', 'US_or_Canadian_Applicant', "Medical_Education_or_Training_Interrupted", "Alpha_Omega_Alpha",  "Military_Service_Obligation", "USMLE_Step_1_Score", "Count_of_Poster_Presentation",  "Count_of_Oral_Presentation", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published", "Count_of_Peer_Reviewed_Online_Publication", "Visa_Sponsorship_Needed", "Medical_Degree", 'Match_Status')]
+
+colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_Abstracts_Other_than_Published"] <- "Count_of_Other_than_Published"
+
+colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Journal_Articles_Abstracts"] <- "Count_of_Articles_Abstracts"
+
+colnames(all_data)[colnames(all_data)=="Medical_Education_or_Training_Interrupted"] <- "Medical_Education_Interrupted"
+
+colnames(all_data)[colnames(all_data)=="Count_of_Peer_Reviewed_Online_Publication"] <- "Count_of_Online_Publications"
+
+all_data<- Hmisc::upData(all_data)
+colnames(all_data)
+```
+
+## 1) Data Quality Check
+
+The original data description was provided by the spambase documentation as including 4601 observations (1813 Spam = 39.4%) and 58 attributes (57 continuous, 1 nominal class label). The imported data was verified as having 4601 observations but contained 61 variables. Three additional variables were added for this assignment indicating a random uniform assignment, train, and test indicators. There were no missing data. The train set included 3439 observations and the test set included 1162 observations. 
+
+A summary of the 58 variables are listed below:
+
+1. 48 of the variables were a continuous real number [0,100] and contained attributes a type of word frequency (ie. 100 * (number of times the WORD appears in the e-mail) / total number of words in e-mail.)
+
+2. 6 variables were continuous real number [0,100] attributes of type char_freq_CHAR (i.e. 100 * (number of CHAR occurences) / total characters in e-mail).
+
+3. 1 continuous real number [1,...] attribute of type capital_run_length_average (ie. average length of uninterrupted sequences of capital letters).
+
+4. 1 continuous integer [1,...] attribute of type capital_run_length_longest (i.e.length of longest uninterrupted sequence of capital letters).
+
+5. 1 continuous integer [1,...] attribute of type capital_run_length_total (i.e. sum of length of uninterrupted sequences of capital letters total number of capital letters in the e-mail.
+
+6. 1 nominal {0,1} class attribute of type spam. Denotes whether the e-mail was considered spam (1) or not (0), (i.e. unsolicited commercial e-mail).
+
+Variables 1:54 were checked within range of 0,100 as defined. 1813 (0.394) observations were marked as spam and 2788 (0.606) observations were marked as not spam in the total dataset. This was consistent with the spambased documentation.
+
+```{r structure of data}
+cat("\n","----- Initial Structure of data frame -----","\n")
+# examine the structure of the initial data frame
+print(str(all_data))
+```
+
+```{r structure data 2}
+all_data <- Hmisc::upData(all_data)
+all_data <- Hmisc::cleanup.import(all_data)
+str(all_data)
+```
+
+
+```{r Describe data, include=FALSE}
+describe(all_data)
+```
+
+```{r spam data check, include=FALSE}
+describe(as.factor(all_data$Match_Status))
+```
+
+Descriptive summaries of all variables in the dataset are provided in the table.
+```{r, include = TRUE, results='asis'}
+stargazer::stargazer(all_data, header=FALSE, title = "Descriptive Statistics of Match_Status Data", type='latex', nobs = TRUE, mean.sd = TRUE, median = TRUE, iqr = TRUE, digits = 1, font.size = "small", flip = FALSE)
+```
+
+
+```{r, train vs test, warning=FALSE, echo=TRUE, message=FALSE}
+train <- filter(all_data, Year < 2018)  #Train on years 2015, 2016, 2017
+nrow(train) 
+test <- filter(all_data, Year == 2018) #Test on 2018 data
+nrow(test)
+test <- test %>% select(-"Year")
+train <- train %>% select(-"Year")
+```
+
+## 2) Exploratory data analysis
+
+After the data check was completed, an exploratory data analysis (EDA) was conducted to look for interesting relationships among the variables. Histograms were used to visualize distributions among predictors. Since the assignment was a classification problem, relationships between predictors and the dichotomous outcome were also performed. Distributions of all variables were skewed right. Examples of histograms of four variables: word_freq_3d, word_freq_address, word_freq_all and word_freq_make are demonstrated below.
+
+```{r, include = TRUE, fig.width=8, fig.height=3}
+plot_histogram(train[,2])
+plot_histogram(train[,9])
+plot_histogram(train[,10:12])
+plot_histogram(train[,13:15])
+```
+
+This allowed for measuring the associations between continuous predictors using a matrix with correlation coefficients. The scatterplot matrix of a sample of predictors below demonstrated some associations. For example, char_freq_$ was associated with char_freq_! and capital_run_length_total, capital_run_length_average and capital_run_length_longest were also associated with one another.
+
+```{r, include = TRUE, fig.width=8, fig.height=4}
+#psych::pairs.panels(train.df[50:57], bg=c("red","blue")[as.factor(train.df$Match_Status)], pch=21, jiggle = TRUE)
+```
+
+Since the predictors were highly skewed, binning was also explored. This facilitated visualizing associations between binned variables and the outcome using contingency plots. Supervised Weight of Evidence (WOE) binning of numeric variables were explored using the woeBinning package. Fine and coarse classing that merged granular classes and levels step by step was performed. Bins were merged and respectively split based on similar weight of evidence (WOE) values and stop via an information value (IV) based criteria. The figure below demonstrated the top five predictors ranked by information value during binning.
+
+```{r, include = TRUE, align = 'center', echo=FALSE}
+# WOE binning 
+# Confirming target variable is numeric and 0 or 1
+train$Match_Status <- as.numeric(train$Match_Status) - 1
+table(train$Match_Status)
+train <- as.data.frame(train)
+
+# Bin all variables of the data frame (apart from the target variable)
+# with default parameter settings
+binning <- woe.binning(train, 'Match_Status', c('Age','USMLE_Step_1_Score', "Count_of_Poster_Presentation", "Count_of_Oral_Presentation", "Count_of_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Other_than_Published", "Count_of_Online_Publications"))
+
+woe.binning.plot(binning, "1:5")
+
+#woe.binning.plot(binning)
+bin.top.five <- binning[1:5,c(1,3)]
+pander::pander(bin.top.five, style = "simple", justify = c('left', 'center'))
+```
+
+These top five binned variables were used for the training and test set.
+
+```{r bin train}
+# Deploy the binning solution to the data frame
+# (add all binned variables and corresponding WOE variables)
+train.df.with.binned.vars.added <- woe.binning.deploy(train, binning, add.woe.or.dum.var='woe')
+train.df.binned <- train.df.with.binned.vars.added
+# Removing char_freq_dollar raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -USMLE_Step_1_Score)
+# Removing word_freq_remove raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Age)
+# Removing char_freq_exclamation raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Poster_Presentation)
+# Removing word_freq_hp raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Articles_Abstracts)
+# Removing capital_run_length_average raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Oral_Presentation)
+# Removing capital_run_length_average raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Other_than_Published)
+# Removing capital_run_length_average raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Peer_Reviewed_Book_Chapter)
+# Removing capital_run_length_average raw variable since binned is present
+train.df.binned <- dplyr::select(train.df.binned, -Count_of_Online_Publications)
+
+str(train.df.binned)
+```
+
+```{r stargazer train, eval=FALSE, include=FALSE}
+stargazer::stargazer(train.df.binned, header=FALSE, title = "Descriptive Statistics of Binned Training Match_Status Data", type='latex', nobs = TRUE, mean.sd = TRUE, median = TRUE, iqr = TRUE, digits = 1, font.size = "small", flip = FALSE)
+```
+
+```{r bin test}
+# Deploy the binning solution to the data frame
+# (add all binned variables and corresponding WOE variables)
+test <- as.data.frame(test)
+
+# Bin all variables of the data frame (apart from the target variable)
+# with default parameter settings
+binning.test <- woe.binning(test, 'Match_Status', c('Age','USMLE_Step_1_Score', "Count_of_Poster_Presentation", "Count_of_Oral_Presentation", "Count_of_Articles_Abstracts", "Count_of_Peer_Reviewed_Book_Chapter", "Count_of_Other_than_Published", "Count_of_Online_Publications"))
+
+woe.binning.plot(binning.test, "1:5")
+
+#woe.binning.plot(binning)
+bin.top.five <- binning.test[1:5,c(1,3)]
+pander::pander(bin.top.five, style = "simple", justify = c('left', 'center'))
+
+test.df.with.binned.vars.added <- woe.binning.deploy(test, binning, min.iv.total=0.5,add.woe.or.dum.var='woe')
+test.df.binned <- test.df.with.binned.vars.added[-18]
+# Removing char_freq_dollar raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -"USMLE_Step_1_Score")
+# Removing word_freq_remove raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Age)
+# Removing char_freq_exclamation raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Poster_Presentation)
+# Removing word_freq_hp raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Articles_Abstracts)
+# Removing capital_run_length_average raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Oral_Presentation)
+# Removing capital_run_length_average raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Other_than_Published)
+# Removing capital_run_length_average raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Peer_Reviewed_Book_Chapter)
+# Removing capital_run_length_average raw variable since binned is present
+test.df.binned <- dplyr::select(test.df.binned, -Count_of_Online_Publications)
+
+str(test.df.binned)
+```
+
+```{r stargazer test, eval=FALSE, include=FALSE}
+stargazer::stargazer(test.df.binned, header=FALSE, title = "Descriptive Statistics of Binned Training Match_Status Data", type='latex', nobs = TRUE, mean.sd = TRUE, median = TRUE, iqr = TRUE, digits = 1, font.size = "small", flip = FALSE)
+```
+
+Relationships between binned variables and `Match_Status` were explored using mosaic plots to look for interesting bins that aided in discrimination. An example of several binned variables are shown in the plots below.
+
+```{r OneR chunk}
+# Fit a model to a single attribute;
+model.1 <- OneR(Match_Status ~ Age.binned, data=train.df.binned, verbose=TRUE);
+model.2 <- OneR(Match_Status ~ USMLE_Step_1_Score.binned, data=train.df.binned, verbose=TRUE);
+model.3 <- OneR(Match_Status ~ Count_of_Poster_Presentation.binned, data=train.df.binned, verbose=TRUE);
+model.4 <- OneR(Match_Status ~ Count_of_Articles_Abstracts.binned, data=train.df.binned, verbose=TRUE);
+model.5 <- OneR(Match_Status ~ Count_of_Oral_Presentation.binned, data=train.df.binned, verbose=TRUE);
+model.6 <- OneR(Match_Status ~ Count_of_Other_than_Published.binned, data=train.df.binned, verbose=TRUE);
+model.7 <- OneR(Match_Status ~ Count_of_Peer_Reviewed_Book_Chapter.binned, data=train.df.binned, verbose=TRUE);
+model.8 <- OneR(Match_Status ~ Count_of_Online_Publications.binned, data=train.df.binned, verbose=TRUE);
+```
+
+```{r OneR diagnostic plots, fig.height=4, fig.width=8, align='center', include=TRUE}
+# Commonly used to visualize classifier accuracy;
+par(mfrow=c(1,2))
+plot(model.1)
+plot(model.2)
+plot(model.3)
+plot(model.4)
+plot(model.5)
+plot(model.6)
+plot(model.7)
+plot(model.8)
+par(mfrow = c(1,1))
+```
+
+A simple decision tree model was used for exploration. The variable importance summary from the simple tree was used to explore important relationships. The variables char_freq_exclamation.binned, woe.char_freq_exclamation.binned , char_freq_dollar.binned and capital_run_length_longest were the top four variables in importance.
+
+```{r rpart EDA}
+t.model <- rpart(as.factor(Match_Status)~., data = train.df.binned)
+t.model$variable.importance
+```
+
+The simple tree was plotted below. The variables char_freq_exclamation.binned, word_freq_remove.binned and char_freq_dollar.binned were near the roots of the tree demonstrating importance.
+
+```{r fancyR plot rpart EDA, include=TRUE}
+# plot 
+fancyRpartPlot(t.model, caption = NULL)
+```
+
+Exploratory random forest was also performed. The variable importance for the random forest model was summarized in the figure below. The variables capital_run_length_longest, capital_run_length_total, char_freq_dollar.binned, word_freq_free and word_freq_your were the top five using accuracy and the Gini index.
+
+```{r RF EDA, cache=TRUE, include=TRUE}
+# Random forest for EDA
+set.seed(12345)
+
+Y <- as.factor(train.df.binned$Match_Status)
+X <- train.df.binned[,-10]
+
+#train default model and the most regularized model with same predictive performance
+rf.eda = randomForest(X,Y,sampsize=25,ntree=5000,mtry=4,
+                         keep.inbag = T,
+                         keep.forest = T, 
+                         importance = TRUE)
+varImpPlot(rf.eda, main = "Random Forest EDA Variable Importance", cex = 0.75)
+```
+
+## 3) The Model Build
+
+All models were fit using the data labeled train and validated using the data labeled test. 10-fold cross-validation was performed for variable selection and parameter estimation was performed using cross-validation where appropriate.
+
+**(1) Logistic regression using backwards variable selection model** 
+
+A logistic regression model using backwards variable selection was fit. The summary of the model coefficients for the final model is presented in Table 3. Table 4 demonstrates the confusion matrix for the in-sample performance of the model and Table 5 demonstrates the confusion matrix for the out-of-sample performance.
+
+```{r Backwards LR model, message=FALSE, warning=FALSE, cache=TRUE}
+full.model <- glm(as.factor(Match_Status) ~ 
+                  white_non_white + Age + 
+                         Gender +  Couples_Match +
+                         US_or_Canadian_Applicant + Medical_Education_Interrupted + 
+                         Alpha_Omega_Alpha +
+                         Military_Service_Obligation + USMLE_Step_1_Score +
+                         Count_of_Poster_Presentation + Count_of_Oral_Presentation +
+                         Count_of_Articles_Abstracts + Count_of_Peer_Reviewed_Book_Chapter + 
+                         Count_of_Other_than_Published + Count_of_Online_Publications + 
+                         Visa_Sponsorship_Needed + Medical_Degree  + char_freq_dollar.binned + 
+                    woe.char_freq_dollar.binned + word_freq_remove.binned + 
+                    woe.word_freq_remove.binned + char_freq_exclamation.binned + 
+                    woe.char_freq_exclamation.binned + word_freq_hp.binned + 
+                    woe.word_freq_hp.binned + capital_run_length_average.binned + 
+                    woe.capital_run_length_average.binned
+                  , 
+                  data = train.df.binned, family = binomial)
+ backwards = step(full.model) # Backwards selection is the default
+```
+
+```{r,Stargazer backwards LR, include=TRUE,results='asis'}
+stargazer::stargazer(backwards, title="Backwards Logistic Regression Model Results", no.space=TRUE, header=FALSE, type='latex',  ci=TRUE, ci.level=0.95, single.row=TRUE)
+```
+
+```{r train backwards, align= 'center'}
+train.backwards <- predict(backwards, newdata = train.df.binned, type = "response")
+train.backwards <- ifelse(train.backwards > 0.50, 1, 0)
+lr.accuracy <- caret::postResample(pred = train.backwards, obs = as.factor(train.df.binned$Match_Status)) 
+#cat("\n","----- Accuracy of Backwards LR on train set -----","\n")
+lr.accuracy[1]
+```
+
+```{r conf matrix backwards LR, align= 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of Backwards LR on train set -----","\n")
+t <- table(as.factor(train.df.binned$Match_Status),train.backwards)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Backwards LR on train set") %>% kable_styling(latex_options = "striped")
+```
+
+
+```{r accuracy test backwards LR, align = 'center'}
+test.backwards <- predict(backwards, newdata = test.df.binned, type = "response")
+test.backwards <- ifelse(test.backwards > 0.50, 1, 0)
+#cat("\n","----- Accuracy of Backwards LR on test set -----","\n")
+lr.accuracy.test <- caret::postResample(pred = test.backwards, obs = as.factor(test.df.binned$Match_Status)) 
+lr.accuracy.test[1]
+```
+
+
+```{r Conf matrix test, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of Backwards LR on test set -----","\n")
+t <- table(as.factor(test.df.binned$Match_Status),test.backwards)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Backwards LR on test set") %>% kable_styling(latex_options = "striped")
+```
+
+The in-sample accuracy was `r lr.accuracy[1]` and the out-of-sample accuracy was `r lr.accuracy.test[1]`.
+
+\pagebreak
+
+**(2) Tree model** 
+
+A CART model was fit using the rpart package. The final model is presented in the figure below. The majority of final predictors were derived from the binning process. The variables char_free_exclamation.binned, word_freq_removed.binned, and woe.char_freq_dollar.binned had significant influence in the model. Table 6 demonstrates the confusion matrix for the in-sample performance of the model and Table 7 demonstrates the confusion matrix for the out-of-sample performance.
+
+```{r cart model, cache=TRUE}
+#CART
+library(caret)
+# Timer on
+ptm = proc.time()
+set.seed(12345)
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 2)
+
+cart.model <-    train(as.factor(Match_Status) ~ .
+                           , 
+                data = train.df.binned, 
+                method = 'rpart',
+                trControl = fitControl,
+                tuneLength = 8,
+                preProc = c("center", "scale"),
+                metric = "Accuracy"
+                )
+# Timer off
+proc.time() - ptm; rm(ptm)
+
+cart.model
+```
+
+```{r CART plot , align = 'center', include=TRUE}
+fancyRpartPlot(cart.model$finalModel, caption = NULL)
+```
+
+```{r Train cart accuracy}
+train.cart <- predict(cart.model, train.df.binned)
+#cat("\n","----- Performance of cart on train set -----","\n")
+cart.accuracy <- caret::postResample(pred = train.cart, obs = as.factor(train.df.binned$Match_Status))
+cart.accuracy[1]
+```
+
+```{r conf matrix train cart, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of CART model on train set -----","\n")
+t <- table(as.factor(train.df.binned$Match_Status),train.cart)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of CART on train set") %>% kable_styling(latex_options = "striped")
+
+```
+
+```{r cart test accuracy}
+test.cart <- predict(cart.model, test.df.binned)
+#cat("\n","----- Performance of cart on test set -----","\n")
+cart.accuracy.test <- caret::postResample(pred = test.cart, obs = as.factor(test.df.binned$Match_Status))
+cart.accuracy.test[1]
+```
+
+```{r CART test conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of CART model on test set -----","\n")
+t <- table(as.factor(test.df.binned$Match_Status),test.cart)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of CART on test set") %>% kable_styling(latex_options = "striped")
+
+```
+
+For the CART model, the in-sample accuracy was `r cart.accuracy[1]` and out-of-sample accuracy was `r cart.accuracy.test[1]`.
+
+
+\pagebreak
+
+**(3) a Support Vector Machine model** 
+
+The support vector machine model was fit. Cross validation identified a cost C = 1 using a linear kernel and a sigma =  0.0220362003226674 using 966 support vectors.
+
+```{r SVM model, cache=TRUE}
+#SVM
+library(caret)
+# Timer on
+ptm = proc.time()
+set.seed(12345)
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 2)
+
+svm.model <-    train(as.factor(Match_Status) ~ .
+                           , 
+                data = train.df.binned, 
+                method = 'svmLinear',
+                trControl = fitControl,
+                tuneLength = 8,
+                metric = "Accuracy", scale = FALSE #added scale = FALSE to make it work
+                )
+# Timer off
+proc.time() - ptm; rm(ptm)
+
+svm.model
+```
+
+```{r medians of values}
+# Select numeric columns
+data.numcols <- train.df.binned[, sapply(train.df.binned, is.numeric)]
+
+# Using apply
+all.medians <- apply(data.numcols, 2, median)
+
+# Using colMeans
+all.means <- colMeans(data.numcols)
+```
+
+
+```{r SVM model one, eval=FALSE, include=FALSE}
+# Fit the SVM using C value of 1
+require(e1071)
+svm.model.one <- svm(Match_Status ~ .
+                     , data=train.df.binned)
+svm.plot <- plot(svm.model.one, train.df.binned, Match_Status ~ word_freq_make, slice = list(word_freq_make = 0, 
+                                                                         word_freq_address = 0,
+                                                                         word_freq_all = 0,
+                                                                         word_freq_3d = 0,
+                                                                         word_freq_our = 0,
+                                                                         word_freq_over = 0,
+                                                                         word_freq_internet = 0,
+                                                                         word_freq_order = 0,
+                                                                         word_freq_mail = 0,
+                                                                         word_freq_receive = 0,
+                                                                         word_freq_will = 0.15,
+                                                                         word_freq_people = 0,
+                                                                         word_freq_report = 0,
+                                                                         word_freq_addresses = 0,
+                                                                         word_freq_free = 0,
+                                                                         word_freq_business = 0,
+                                                                         word_freq_email = 0,
+                                                                         word_freq_you = 1.31,
+                                                                         word_freq_credit = 0,
+                                                                         word_freq_your = 0.23,
+                                                                         word_freq_font = 0,
+                                                                         word_freq_000 = 0,
+                                                                         word_freq_money = 0,
+                                                                         word_freq_hpl = 0,
+                                                                         word_freq_george = 0,
+                                                                         word_freq_650 = 0,
+                                                                         word_freq_lab = 0,
+                                                                         word_freq_labs = 0,
+                                                                         word_freq_telnet = 0,
+                                                                         word_freq_857 = 0,
+                                                                         word_freq_data = 0,
+                                                                         word_freq_415 = 0,
+                                                                         word_freq_85 = 0,
+                                                                         word_freq_technology = 0,
+                                                                         word_freq_1999 = 0,
+                                                                         word_freq_parts = 0,
+                                                                         word_freq_pm = 0,
+                                                                         word_freq_direct = 0,
+                                                                         word_freq_cs = 0,
+                                                                         word_freq_meeting = 0,
+                                                                         word_freq_original = 0,
+                                                                         word_freq_project = 0,
+                                                                         word_freq_re = 0,
+                                                                         word_freq_edu = 0,
+                                                                         word_freq_table = 0,
+                                                                         word_freq_conference = 0,
+                                                                         char_freq_semicolon = 0,
+                                                                         char_freq_parent = 0.066,
+                                                                         char_freq_bracket = 0,
+                                                                         char_freq_number = 0,
+                                                                         capital_run_length_longest = 15,
+                                                                         capital_run_length_total = 96,
+                                                                         woe.char_freq_dollar.binned = 85.8059270,
+                                                                         woe.word_freq_remove.binned = 53.4642233,
+                                                                         woe.char_freq_exclamation.binned = 145.0184770,
+                                                                         woe.word_freq_hp.binned = -44.7334349,
+                                                                         woe.capital_run_length_average.binned = 0.1781977))
+
+svm.plot
+```
+
+
+```{r Plot SVM, eval=FALSE, include=FALSE}
+# Plot SVM model
+plot(svm.model.one, train.df.binned, word_freq_make ~ word_freq_address,
+     svSymbol = 1, dataSymbol = 2, symbolPalette = rainbow(4),
+color.palette = terrain.colors)
+```
+
+
+```{r SVM train accuracy, align = 'center'}
+train.svm <- predict(svm.model, train.df.binned)
+cat("\n","----- Performance of svm on train set -----","\n")
+svm.accuracy <- caret::postResample(pred = train.svm, obs = as.factor(train.df.binned$Match_Status))
+svm.accuracy[1]
+```
+
+```{r SVM train conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of SVM model on train set -----","\n")
+t <- table(as.factor(train.df.binned$Match_Status),train.svm)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of SVM model on train set") %>% kable_styling(latex_options = "striped")
+
+```
+
+
+```{r SVM test accuracy, align = 'center'}
+test.svm <- predict(svm.model, test.df.binned)
+cat("\n","----- Performance of svm on test set -----","\n")
+svm.accuracy.test <- caret::postResample(pred = test.svm, obs = as.factor(test.df.binned$Match_Status))
+svm.accuracy.test[1]
+```
+
+```{r SVM test conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of SVM model on test set -----","\n")
+t <- table(as.factor(test.df.binned$Match_Status),test.svm)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of SVM model on test set") %>% kable_styling(latex_options = "striped")
+
+```
+
+For the SVM model, the in-sample accuracy was `r svm.accuracy[1]` and out-of-sample accuracy was `r svm.accuracy.test[1]`. The in-sample confusion matrix for the SVM model is shown in Table 8 and the out-of-sample confusion matrix for the SVM model is shown in Table 9.
+
+
+**(4) Random Forest model**
+
+A random forest model was fit to the training data. Cross-validation selected the a final value used for mtry = 12 based on optimizing accuracy. The variable importance plot for the random forest model is demonstrated below. Important predictors were similar between the CART model and the RF model. The predictors char_freq_exclamation.binned, woe.char_freq_exclamation.binned, aand woe.char_freq_dollar.binned were top three for variable importance.
+
+```{r RF model, cache=TRUE}
+#RF
+library(caret)
+# Timer on
+ptm = proc.time()
+set.seed(12345)
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 2)
+
+rf.model <-    train(as.factor(Match_Status) ~ .
+                           , 
+                data = train.df.binned, 
+                method = 'rf',
+                trControl = fitControl,
+                tuneLength = 8,
+                metric = "Accuracy"
+                )
+# Timer off
+proc.time() - ptm; rm(ptm)
+
+rf.model
+```
+
+```{r var imp plot rf model, align = 'center', include=TRUE}
+library(caret)
+plot(varImp(rf.model), top = 10)
+```
+
+
+```{r RF train accuracy, align = 'center'}
+train.rf <- predict(rf.model, train.df.binned)
+cat("\n","----- Performance of rf on train set -----","\n")
+rf.accuracy <- caret::postResample(pred = train.rf, obs = as.factor(train.df.binned$Match_Status))
+rf.accuracy[1]
+```
+
+```{r RF train conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of RF model on train set -----","\n")
+t <- table(as.factor(train.df.binned$Match_Status),train.rf)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Random Forest model on train set") %>% kable_styling(latex_options = "striped")
+
+```
+
+
+```{r RF test accuracy, align = 'center'}
+test.rf <- predict(rf.model, test.df.binned)
+cat("\n","----- Performance of rf on test set -----","\n")
+rf.accuracy.test <- caret::postResample(pred = test.rf, obs = as.factor(test.df.binned$Match_Status))
+rf.accuracy.test[1]
+```
+
+```{r RF test conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of RF model on test set -----","\n")
+t <- table(as.factor(test.df.binned$Match_Status),test.rf)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Random Forest model on test set") %>% kable_styling(latex_options = "striped")
+```
+
+For the random forest model, the in-sample accuracy was `r rf.accuracy[1]` and out-of-sample accuracy was `r rf.accuracy.test[1]`. The in-sample confusion matrix for the RF model is shown in Table 10 and the out-of-sample confusion matrix for the RF model is shown in Table 11.
+
+
+\pagebreak
+
+
+## 4) Naïve Bayes with WOE Binning model
+
+Finally, a Naïve Bayes model was fit. Similar to the previous models, the top 5 WOE binned variables were also included in this model. Cross-validation demonstrated that the tuning parameter 'laplace' was held constant at a value of 0 and tuning parameter 'adjust' was held constant at a value of 1. 
+
+```{r NB model, cache=TRUE}
+#Naive Bayes with WOE Binning
+library(caret)
+# Timer on
+ptm = proc.time()
+set.seed(12345)
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 2)
+
+nbwoe <-    train(as.factor(Match_Status) ~ .
+                           , 
+                data = train.df.binned, 
+                method = 'naive_bayes',
+                trControl = fitControl,
+                tuneLength = 8,
+                metric = "Accuracy"
+                )
+# Timer off
+proc.time() - ptm; rm(ptm)
+
+nbwoe
+```
+
+```{r NB model accuracy, align = 'center'}
+train.nbwoe <- predict(nbwoe, train.df.binned)
+cat("\n","----- Performance of nbwoe on train set -----","\n")
+nb.accuracy <- postResample(pred = train.nbwoe, obs = as.factor(train.df.binned$Match_Status))
+nb.accuracy[1]
+```
+
+```{r NB model conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of Naive Bayes model on train set -----","\n")
+t <- table(as.factor(train.df.binned$Match_Status),train.nbwoe)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Naive Bayes model on train set") %>% kable_styling(latex_options = "striped")
+```
+
+
+```{r NB test accuracy, align = 'center'}
+test.nbwoe <- predict(nbwoe, test.df.binned)
+cat("\n","----- Performance of nbwoe on test set -----","\n")
+nb.accuracy.test <- postResample(pred = test.nbwoe, obs = as.factor(test.df.binned$Match_Status))
+nb.accuracy.test[1]
+```
+
+```{r NB test conf matrix, align = 'center', include=TRUE}
+# Scale the confusion matrix to accuracy rates by normalizing
+# by the row totals; row totals are used because true values are rows and predicted values are columns.
+#cat("\n","----- Confusion matrix of Naive Bayes model on test set -----","\n")
+t <- table(as.factor(test.df.binned$Match_Status),test.nbwoe)
+row.totals <- apply(t,MAR=1,FUN=sum)
+#t/row.totals
+dt <- t/row.totals
+library(kableExtra)
+kable(dt, "latex", booktabs = T, caption = "Confusion matrix of Naive Bayes model on test set") %>% kable_styling(latex_options = "striped")
+
+```
+
+For the naive Bayes model, the in-sample accuracy was `r nb.accuracy[1]` and out-of-sample accuracy was `r nb.accuracy.test[1]`. The in-sample confusion matrix for the naive Bayes model is shown in Table 12 and the out-of-sample confusion matrix for the naive Bayes model is shown in Table 13.
+
+
+\pagebreak
+
+
+## 5) Model Comparison
+
+Table 14 summarizes the overall in-sample and out-of-sample accuracy of each model. The best performing models (highest accuracy) was the random forest model with a test set accuracy of `r rf.accuracy.test[1]`. The Logistic regression model using backwards elimination was second with a test set accuracy of `r lr.accuracy.test[1]`. The Naive Bayes model did not perform as well as the other models. In summary, if accuracy is the most important aspect of the model and interpretion is not a priority then the best model was the random forest model. If interpretability of the model is paramount, then the logistic regression model is recommended.
+
+```{r model comparison, align = 'center', include=TRUE}
+# Training set performance summary
+x <- postResample(pred = train.backwards, obs = as.factor(train.df$Match_Status)) 
+a <- postResample(pred = train.cart, obs = as.factor(train.df.binned$Match_Status)) 
+c <- postResample(pred = train.svm, obs = as.factor(train.df.binned$Match_Status)) 
+e <- postResample(pred = train.rf, obs = as.factor(train.df.binned$Match_Status)) 
+g <- postResample(pred = train.nbwoe, obs = as.factor(train.df.binned$Match_Status)) 
+
+# Test set performance summary
+xt <- postResample(pred = test.backwards, obs = as.factor(test.df$Match_Status)) 
+at <- postResample(pred = test.cart, obs = as.factor(test.df.binned$Match_Status)) 
+ct <- postResample(pred = test.svm, obs = as.factor(test.df.binned$Match_Status)) 
+et  <- postResample(pred = test.rf, obs = as.factor(test.df.binned$Match_Status)) 
+gt <- postResample(pred = test.nbwoe, obs = as.factor(test.df.binned$Match_Status)) 
+
+matrix <- matrix(data = c(x[1], a[1], c[1], e[1], g[1], xt[1], at[1], ct[1], et[1], gt[1]), nrow = 5, ncol = 2, byrow = FALSE)
+colnames(matrix) <- c("Training Set Accuracy", "Test Set Accuracy")
+rownames(matrix) <- c("LR Backwards Elimination", "CART", "Support Vector Machine", "Random Forest", "Naive Bayes")
+df <- round(matrix, 3)
+kable(df, "latex", booktabs = T, caption = "In-sample and out-of-sample accuracy of all models") %>% kable_styling(latex_options = "striped")
+```
+
+
+\pagebreak
+
+## References
+Lorrie Faith Cranor and Brian A. LaMacchia. Match_Status! Communications of the ACM. Vol. 41, No. 8 (Aug. 1998), Pages 74-83. Definitive version: http://www.acm.org/pubs/citations/journals/cacm/1998-41-8/p74-cranor/
+
+
+
+
