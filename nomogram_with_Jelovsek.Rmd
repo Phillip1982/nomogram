@@ -105,11 +105,11 @@ plot_histogram(train[,10:12])
 plot_histogram(train[,13:15])
 ```
 
-This allowed for measuring the associations between continuous predictors using a matrix with correlation coefficients. The scatterplot matrix of a sample of predictors below demonstrated some associations. CAN WE INCLUDE ONLY CONTINUOUS VARIABLES?
+This allowed for measuring the associations between continuous predictors using a matrix with correlation coefficients. The scatterplot matrix of a sample of predictors below demonstrated some associations. CAN WE INCLUDE ONLY CONTINUOUS VARIABLES?  SHOULD WE INCLUDE THE TARGET VARIABLE: MATCH_STATUS?
 
 ```{r, include = TRUE, fig.width=8, fig.height=4}
 train.df <- train
-psych::pairs.panels(train.df[, c(9:15)], bg=c("red","blue")[as.factor(train.df$Match_Status)], pch=21, jiggle = TRUE)
+psych::pairs.panels(train.df[, c(9:15, 18)], bg=c("red","blue")[as.factor(train.df$Match_Status)], pch=21, jiggle = TRUE)
 ```
 
 Since the predictors were highly skewed, binning was also explored. This facilitated visualizing associations between binned variables and the outcome using contingency plots. Supervised Weight of Evidence (WOE) binning of numeric variables were explored using the woeBinning package. Fine and coarse classing that merged granular classes and levels step by step was performed. Bins were merged and respectively split based on similar weight of evidence (WOE) values and stop via an information value (IV) based criteria. The figure below demonstrated the top five predictors ranked by information value during binning.
