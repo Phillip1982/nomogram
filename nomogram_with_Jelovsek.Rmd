@@ -232,14 +232,15 @@ plot(model.8)
 par(mfrow = c(1,1))
 ```
 
-A simple decision tree model was used for exploration. The variable importance summary from the simple tree was used to explore important relationships. The variables char_freq_exclamation.binned, woe.char_freq_exclamation.binned , char_freq_dollar.binned and capital_run_length_longest were the top four variables in importance.
+A simple decision tree model was used for exploration. The variable importance summary from the simple tree was used to explore important relationships. The variables a, b, c, and d  were the top four variables in importance.
 
+CAN WE USE ONLY FACTORS IN THIS TREE MODEL?
 ```{r rpart EDA}
 t.model <- rpart(as.factor(Match_Status)~., data = train.df.binned)
 t.model$variable.importance
 ```
 
-The simple tree was plotted below. The variables char_freq_exclamation.binned, word_freq_remove.binned and char_freq_dollar.binned were near the roots of the tree demonstrating importance.
+The simple tree was plotted below. The a, b and c variables were near the roots of the tree demonstrating importance.
 
 ```{r fancyR plot rpart EDA, include=TRUE}
 # plot 
@@ -269,7 +270,7 @@ All models were fit using the data labeled train and validated using the data la
 
 **(1) Logistic regression using backwards variable selection model** 
 
-A logistic regression model using backwards variable selection was fit. The summary of the model coefficients for the final model is presented in Table 3. Table 4 demonstrates the confusion matrix for the in-sample performance of the model and Table 5 demonstrates the confusion matrix for the out-of-sample performance.
+A logistic regression model using backwards variable selection was fit. The summary of the model coefficients for the final model is presented in Table 3. Table 4 demonstrates the confusion matrix for the in-sample performance of the model and Table 5 demonstrates the confusion matrix? or AUC? for the out-of-sample performance.
 
 ```{r Backwards LR model, message=FALSE, warning=FALSE, cache=TRUE}
 full.model <- glm(as.factor(Match_Status) ~ 
